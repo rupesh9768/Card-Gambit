@@ -61,7 +61,7 @@ export const cards = speciesSets.flatMap((set, speciesIndex) =>
       ability: set.ability[cardIndex],
       rarity: rarityByIndex[cardIndex],
       collected: cardIndex < 4 || id % 9 === 0,
-      imageUrl: name === 'Flame Dragon' ? '/cards/flame-dragon.png' : '',
+      imageUrl: name === 'Flame Dragon' ? '/cards/flame-dragon.jpg' : '',
     };
   }),
 );

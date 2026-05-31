@@ -17,11 +17,12 @@ export default function BattleDeck() {
   useEffect(() => {
     getInventory()
       .then((data) => {
-        setCards(data.cards);
+        const ownedCards = data.cards.filter((card) => card.collected);
+        setCards(ownedCards);
         const savedDeckIds = readSavedDeck();
-        const ownedIds = data.cards.map((card) => card.id);
+        const ownedIds = ownedCards.map((card) => card.id);
         const validSavedDeck = savedDeckIds.filter((id) => ownedIds.includes(id)).slice(0, 5);
-        const fillCards = data.cards
+        const fillCards = ownedCards
           .filter((card) => !validSavedDeck.includes(card.id))
           .slice(0, 5 - validSavedDeck.length)
           .map((card) => card.id);
