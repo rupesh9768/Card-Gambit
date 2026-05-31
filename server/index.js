@@ -1,0 +1,95 @@
+import 'dotenv/config';
+import express from 'express';
+import { connectDatabase, isDatabaseConnected } from './db.js';
+import { Card } from './models/Card.js';
+import { getCards, getCollectionSummary, getPlayer, getRarities } from './services/gameService.js';
+
+const app = express();
+const PORT = Number(process.env.PORT) || 4000;
+
+app.use(express.json());
+
+app.get('/api/health', (_request, response) => {
+  response.json({ status: 'ok', database: process.env.MONGODB_URI ? 'configured' : 'mock' });
+});
+
+app.get('/api/dashboard', async (_request, response, next) => {
+  try {
+    const [player, cards] = await Promise.all([getPlayer(), getCards()]);
+
+    response.json({
+      player,
+      collection: getCollectionSummary(cards),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/cards', async (_request, response, next) => {
+  try {
+    const cards = await getCards();
+
+    response.json({
+      cards,
+      rarities: getRarities(),
+      collection: getCollectionSummary(cards),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/cards/:id/collect', async (request, response, next) => {
+  try {
+    const cardId = Number(request.params.id);
+
+    if (!Number.isInteger(cardId)) {
+      return response.status(400).json({ message: 'Invalid card id.' });
+    }
+
+    if (!isDatabaseConnected()) {
+      return response.status(503).json({ message: 'MongoDB is not connected.' });
+    }
+
+    const card = await Card.findOneAndUpdate({ gameId: cardId }, { collected: true }, { new: true });
+
+    if (!card) {
+      return response.status(404).json({ message: 'Card not found.' });
+    }
+
+    return response.json({ card });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/play/:mode', (request, response) => {
+  const modes = ['ranked', 'classic'];
+  const { mode } = request.params;
+
+  if (!modes.includes(mode)) {
+    return response.status(400).json({ message: 'Invalid game mode.' });
+  }
+
+  return response.status(202).json({
+    mode,
+    status: 'queued',
+    message: `${mode === 'ranked' ? 'Ranked' : 'Classic'} battle will be connected later.`,
+  });
+});
+
+app.use('/api', (_request, response) => {
+  response.status(404).json({ message: 'API route not found.' });
+});
+
+app.use((error, _request, response, _next) => {
+  console.error(error);
+  response.status(500).json({ message: 'Server error.' });
+});
+
+connectDatabase().finally(() => {
+  app.listen(PORT, () => {
+    console.log(`Battle Card Game API running on http://127.0.0.1:${PORT}`);
+  });
+});

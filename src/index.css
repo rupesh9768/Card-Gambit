@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background: #050510;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  font-family: theme('fontFamily.body');
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(147, 51, 234, 0.22), transparent 28rem),
+    radial-gradient(circle at 85% 10%, rgba(14, 165, 233, 0.18), transparent 24rem),
+    radial-gradient(circle at 50% 100%, rgba(180, 83, 9, 0.15), transparent 32rem),
+    linear-gradient(135deg, #03030a 0%, #0d0a1f 45%, #050510 100%);
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fantasy-shell {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+.fantasy-shell::before {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  content: '';
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(circle at center, black, transparent 75%);
+}
+
+.fantasy-shell::after {
+  position: fixed;
+  inset: auto -15% -30% -15%;
+  z-index: -1;
+  height: 50vh;
+  content: '';
+  background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.16), transparent 68%);
+  filter: blur(20px);
+}
+
+.glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.76), rgba(17, 10, 37, 0.72));
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.rune-ring {
+  background:
+    conic-gradient(from 180deg, rgba(245, 158, 11, 0.1), rgba(168, 85, 247, 0.5), rgba(14, 165, 233, 0.28), rgba(245, 158, 11, 0.1)),
+    radial-gradient(circle, rgba(15, 23, 42, 0.85) 0 58%, transparent 59%);
+}
