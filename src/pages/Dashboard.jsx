@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Coins, Crown, LibraryBig, Shield, Swords, Trophy } from 'lucide-react';
+import { Bot, Coins, Crown, LibraryBig, Shield, Swords, Trophy } from 'lucide-react';
 import PageShell from '../components/PageShell.jsx';
 import { getDashboard, startGame } from '../lib/api.js';
 
@@ -61,7 +61,7 @@ export default function Dashboard() {
         <div className="animate-fadeUp rounded-lg border border-white/10 bg-slate-950/45 p-5 shadow-xl shadow-black/25 [animation-delay:90ms]">
           <p className="text-center text-xs font-bold uppercase tracking-[0.28em] text-slate-500">Choose Battle</p>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="mt-5 grid gap-4 lg:grid-cols-3">
             <PlayButton
               icon={Shield}
               label="Play Rank"
@@ -75,6 +75,13 @@ export default function Dashboard() {
               subtitle="Casual"
               tone="from-amber-400 via-orange-500 to-rose-500"
               onClick={() => handlePlay('classic')}
+            />
+            <PlayButton
+              icon={Bot}
+              label="Play AI"
+              subtitle="Practice"
+              tone="from-emerald-400 via-teal-500 to-sky-500"
+              onClick={() => handlePlay('ai')}
             />
           </div>
 

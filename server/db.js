@@ -12,6 +12,7 @@ export async function connectDatabase() {
 
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
+      dbName: process.env.MONGODB_DB_NAME || 'cardgame',
       serverSelectionTimeoutMS: 8000,
     });
     console.log('MongoDB connected.');
@@ -29,16 +30,25 @@ export function isDatabaseConnected() {
 }
 
 async function seedDatabase() {
-  const [cardCount, playerCount] = await Promise.all([
-    Card.countDocuments(),
-    Player.countDocuments(),
-  ]);
+  await Promise.all(
+    cards.map(({ id, collected, ...card }) =>
+      Card.updateOne(
+        { gameId: id },
+        {
+          $set: card,
+          $setOnInsert: {
+            gameId: id,
+            collected,
+          },
+        },
+        { upsert: true },
+      ),
+    ),
+  );
 
-  if (cardCount === 0) {
-    await Card.insertMany(cards.map(({ id, ...card }) => ({ ...card, gameId: id })));
-  }
-
-  if (playerCount === 0) {
-    await Player.create(player);
-  }
+  await Player.updateOne(
+    { username: player.username },
+    { $setOnInsert: player },
+    { upsert: true },
+  );
 }

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
-import { connectDatabase } from './db.js';
+import { connectDatabase, isDatabaseConnected } from './db.js';
 import { collectCard, getCards, getCollectionSummary, getPlayer, getRarities, getSpecies } from './services/gameService.js';
 
 const app = express();
@@ -9,7 +9,10 @@ const PORT = Number(process.env.PORT) || 4000;
 app.use(express.json());
 
 app.get('/api/health', (_request, response) => {
-  response.json({ status: 'ok', database: process.env.MONGODB_URI ? 'configured' : 'mock' });
+  response.json({
+    status: 'ok',
+    database: isDatabaseConnected() ? 'connected' : 'mock',
+  });
 });
 
 app.get('/api/dashboard', async (_request, response, next) => {
@@ -77,7 +80,7 @@ app.post('/api/cards/:id/collect', async (request, response, next) => {
 });
 
 app.post('/api/play/:mode', (request, response) => {
-  const modes = ['ranked', 'classic'];
+  const modes = ['ranked', 'classic', 'ai'];
   const { mode } = request.params;
 
   if (!modes.includes(mode)) {
@@ -87,9 +90,21 @@ app.post('/api/play/:mode', (request, response) => {
   return response.status(202).json({
     mode,
     status: 'queued',
-    message: `${mode === 'ranked' ? 'Ranked' : 'Classic'} battle will be connected later.`,
+    message: `${getModeLabel(mode)} battle will be connected later.`,
   });
 });
+
+function getModeLabel(mode) {
+  if (mode === 'ranked') {
+    return 'Ranked';
+  }
+
+  if (mode === 'ai') {
+    return 'AI';
+  }
+
+  return 'Classic';
+}
 
 app.use('/api', (_request, response) => {
   response.status(404).json({ message: 'API route not found.' });
