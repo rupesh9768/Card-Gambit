@@ -85,16 +85,29 @@ export default function Dashboard() {
           )}
         </div>
 
-        <Link
-          to="/collection"
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+          to="/inventory"
           className="glass-panel group flex animate-fadeUp items-center justify-between rounded-full px-5 py-4 transition hover:-translate-y-0.5 hover:border-sky-300/40 hover:shadow-frost [animation-delay:160ms]"
         >
           <span className="flex items-center gap-3 font-bold text-slate-100">
             <LibraryBig className="text-sky-200 transition group-hover:scale-110" size={20} />
-            Collection
+            Inventory
           </span>
-          <span className="text-sm font-bold text-slate-500 transition group-hover:text-slate-200">View Cards</span>
+          <span className="text-sm font-bold text-slate-500 transition group-hover:text-slate-200">Owned Cards</span>
         </Link>
+
+          <Link
+            to="/battle-deck"
+            className="glass-panel group flex animate-fadeUp items-center justify-between rounded-full px-5 py-4 transition hover:-translate-y-0.5 hover:border-amber-300/40 hover:shadow-ember [animation-delay:210ms]"
+          >
+            <span className="flex items-center gap-3 font-bold text-slate-100">
+              <Swords className="text-amber-200 transition group-hover:scale-110" size={20} />
+              Battle Deck
+            </span>
+            <span className="text-sm font-bold text-slate-500 transition group-hover:text-slate-200">5 Cards</span>
+          </Link>
+        </div>
       </section>
     </PageShell>
   );

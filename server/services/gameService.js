@@ -1,4 +1,4 @@
-import { cards as mockCards, rarities } from '../data/cards.js';
+import { cards as mockCards, rarities, species } from '../data/cards.js';
 import { player as mockPlayer } from '../data/player.js';
 import { isDatabaseConnected } from '../db.js';
 import { Card } from '../models/Card.js';
@@ -25,9 +25,27 @@ export function getRarities() {
   return rarities;
 }
 
+export function getSpecies() {
+  return species;
+}
+
 export function getCollectionSummary(cards) {
   return {
     collected: cards.filter((card) => card.collected).length,
     total: cards.length,
   };
+}
+
+export async function collectCard(cardId) {
+  if (!isDatabaseConnected()) {
+    const card = mockCards.find((card) => card.id === cardId);
+
+    if (card) {
+      card.collected = true;
+    }
+
+    return card;
+  }
+
+  return Card.findOneAndUpdate({ gameId: cardId }, { collected: true }, { new: true });
 }

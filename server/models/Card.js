@@ -18,6 +18,11 @@ const cardSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    species: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     rarity: {
       type: String,
       enum: ['Common', 'Rare', 'Epic', 'Legendary', 'Unknown'],
@@ -37,6 +42,11 @@ const cardSchema = new mongoose.Schema(
       type: Number,
       default: 1,
       min: 1,
+    },
+    ability: {
+      type: String,
+      default: '',
+      trim: true,
     },
     collected: {
       type: Boolean,

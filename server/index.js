@@ -1,8 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
-import { connectDatabase, isDatabaseConnected } from './db.js';
-import { Card } from './models/Card.js';
-import { getCards, getCollectionSummary, getPlayer, getRarities } from './services/gameService.js';
+import { connectDatabase } from './db.js';
+import { collectCard, getCards, getCollectionSummary, getPlayer, getRarities, getSpecies } from './services/gameService.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -33,6 +32,23 @@ app.get('/api/cards', async (_request, response, next) => {
     response.json({
       cards,
       rarities: getRarities(),
+      species: getSpecies(),
+      collection: getCollectionSummary(cards),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/inventory', async (_request, response, next) => {
+  try {
+    const cards = await getCards();
+    const ownedCards = cards.filter((card) => card.collected);
+
+    response.json({
+      cards: ownedCards,
+      rarities: getRarities(),
+      species: getSpecies(),
       collection: getCollectionSummary(cards),
     });
   } catch (error) {
@@ -48,11 +64,7 @@ app.post('/api/cards/:id/collect', async (request, response, next) => {
       return response.status(400).json({ message: 'Invalid card id.' });
     }
 
-    if (!isDatabaseConnected()) {
-      return response.status(503).json({ message: 'MongoDB is not connected.' });
-    }
-
-    const card = await Card.findOneAndUpdate({ gameId: cardId }, { collected: true }, { new: true });
+    const card = await collectCard(cardId);
 
     if (!card) {
       return response.status(404).json({ message: 'Card not found.' });

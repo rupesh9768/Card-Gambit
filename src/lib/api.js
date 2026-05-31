@@ -21,6 +21,10 @@ export function getCards() {
   return request('/api/cards');
 }
 
+export function getInventory() {
+  return request('/api/inventory');
+}
+
 export function startGame(mode) {
   return request(`/api/play/${mode}`, {
     method: 'POST',

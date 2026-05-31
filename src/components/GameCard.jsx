@@ -39,10 +39,11 @@ const rarityStyles = {
   },
 };
 
-export default function GameCard({ card }) {
+export default function GameCard({ card, size = 'normal' }) {
   const [flipped, setFlipped] = useState(false);
   const styles = rarityStyles[card.rarity] ?? rarityStyles.Unknown;
   const collected = card.collected;
+  const heightClass = size === 'compact' ? 'h-[23rem]' : 'h-[27rem]';
 
   function handleClick() {
     if (collected) {
@@ -55,7 +56,7 @@ export default function GameCard({ card }) {
       type="button"
       onClick={handleClick}
       disabled={!collected}
-      className={`group h-[27rem] w-full rounded-xl text-left transition duration-300 [perspective:1200px] ${
+      className={`group ${heightClass} w-full rounded-xl text-left transition duration-300 [perspective:1200px] ${
         collected ? `cursor-pointer hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] ${styles.glow}` : 'cursor-not-allowed opacity-55 grayscale transition hover:opacity-65'
       }`}
       aria-label={collected ? `${card.name} card` : 'Locked card'}
@@ -76,7 +77,12 @@ function CardFront({ card, styles, collected }) {
   return (
     <div className={`absolute inset-0 overflow-hidden rounded-xl border ${styles.border} bg-slate-950 p-4 shadow-xl shadow-black/35 [backface-visibility:hidden]`}>
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-70" />
-      <div className={`relative grid h-64 place-items-center overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br ${styles.art}`}>
+      <div className="mb-3 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+        <span>{collected ? card.species : 'Unknown'}</span>
+        <span>{collected ? card.ability : 'Hidden'}</span>
+      </div>
+
+      <div className={`relative grid h-56 place-items-center overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br ${styles.art}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.15),transparent_34%)]" />
         <div className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition group-hover:translate-x-[320%] group-hover:opacity-100 group-hover:duration-700" />
         {collected ? (
@@ -104,7 +110,7 @@ function CardFront({ card, styles, collected }) {
         </span>
       </div>
 
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
         {collected ? 'Click to flip' : 'Find this card to unlock it'}
       </p>
     </div>
@@ -119,7 +125,9 @@ function CardBack({ card, styles }) {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-200">Card Details</p>
           <h3 className="mt-2 font-display text-2xl font-black text-slate-50">{card.name}</h3>
-          <p className="mt-1 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{card.race}</p>
+          <p className="mt-1 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+            {card.species} / {card.race}
+          </p>
         </div>
 
         <div className="my-6 grid flex-1 place-items-center rounded-lg border border-white/10 bg-white/[0.035]">
@@ -128,7 +136,7 @@ function CardBack({ card, styles }) {
               {card.rarity}
             </span>
             <p className="max-w-48 text-sm leading-6 text-slate-400">
-              Placeholder lore and photo area until final card names and art are ready.
+              Ability: <span className="font-bold text-slate-200">{card.ability}</span>
             </p>
           </div>
         </div>

@@ -1,9 +1,10 @@
 import { Link, NavLink } from 'react-router-dom';
-import { ChevronLeft, Gem, LibraryBig, Shield } from 'lucide-react';
+import { ChevronLeft, Gem, LibraryBig, Shield, Swords } from 'lucide-react';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: Shield },
-  { to: '/collection', label: 'Collection', icon: LibraryBig },
+  { to: '/inventory', label: 'Inventory', icon: LibraryBig },
+  { to: '/battle-deck', label: 'Battle Deck', icon: Swords },
 ];
 
 export default function PageShell({ children, showBack = false }) {
