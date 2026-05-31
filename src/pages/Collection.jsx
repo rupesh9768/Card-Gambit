@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Filter } from 'lucide-react';
 import GameCard from '../components/GameCard.jsx';
 import PageShell from '../components/PageShell.jsx';
-import { getInventory } from '../lib/api.js';
+import { getCards } from '../lib/api.js';
 
 export default function Collection() {
   const [data, setData] = useState({ cards: [], rarities: ['All'], species: ['All'], collection: null });
@@ -11,9 +11,9 @@ export default function Collection() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    getInventory()
+    getCards()
       .then(setData)
-      .catch(() => setError('Could not load inventory from the backend.'));
+      .catch(() => setError('Could not load cards from the backend.'));
   }, []);
 
   const collectedCount = data.collection?.collected ?? 0;
@@ -33,7 +33,7 @@ export default function Collection() {
           <p className="text-sm font-bold uppercase tracking-[0.24em] text-violet-200">Player Inventory</p>
           <h1 className="mt-2 font-display text-4xl font-black text-slate-50 sm:text-5xl">Collected Cards</h1>
           <p className="mt-2 text-sm text-slate-400">
-            {collectedCount} / {totalCount} owned. New cards will appear here after collection.
+            {collectedCount} / {totalCount} unlocked. Locked cards reveal when collected.
           </p>
           {error && <p className="mt-2 text-sm font-semibold text-rose-200">{error}</p>}
         </div>
@@ -84,7 +84,7 @@ export default function Collection() {
 
       {filteredCards.length === 0 && (
         <div className="glass-panel mt-6 rounded-lg p-8 text-center text-slate-400">
-          No owned cards match this filter.
+          No cards match this filter.
         </div>
       )}
     </PageShell>

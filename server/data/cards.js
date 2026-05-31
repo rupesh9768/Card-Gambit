@@ -32,8 +32,8 @@ const speciesSets = [
   {
     species: 'Dragons',
     race: 'Dragon',
-    names: ['Ember Whelp', 'Frostjaw Drake', 'Copper Wing', 'Stormscale', 'Magma Brood', 'Azure Drake', 'Nightflame', 'Elder Talon', 'Sky Tyrant', 'Ancient Pyra'],
-    ability: ['Spark Breath', 'Frost Bite', 'Wing Beat', 'Storm Breath', 'Lava Skin', 'Arcane Breath', 'Dark Flame', 'Talon Rend', 'Air Rule', 'Ancient Fire'],
+    names: ['Flame Dragon', 'Frostjaw Drake', 'Copper Wing', 'Stormscale', 'Magma Brood', 'Azure Drake', 'Nightflame', 'Elder Talon', 'Sky Tyrant', 'Ancient Pyra'],
+    ability: ['Flame Breath', 'Frost Bite', 'Wing Beat', 'Storm Breath', 'Lava Skin', 'Arcane Breath', 'Dark Flame', 'Talon Rend', 'Air Rule', 'Ancient Fire'],
   },
   {
     species: 'Wizards',
@@ -61,6 +61,7 @@ export const cards = speciesSets.flatMap((set, speciesIndex) =>
       ability: set.ability[cardIndex],
       rarity: rarityByIndex[cardIndex],
       collected: cardIndex < 4 || id % 9 === 0,
+      imageUrl: name === 'Flame Dragon' ? '/cards/flame-dragon.png' : '',
     };
   }),
 );

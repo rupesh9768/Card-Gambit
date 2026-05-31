@@ -85,7 +85,13 @@ function CardFront({ card, styles, collected }) {
       <div className={`relative grid h-56 place-items-center overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br ${styles.art}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.15),transparent_34%)]" />
         <div className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition group-hover:translate-x-[320%] group-hover:opacity-100 group-hover:duration-700" />
-        {collected ? (
+        {collected && card.imageUrl ? (
+          <img
+            src={card.imageUrl}
+            alt={card.name}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+          />
+        ) : collected ? (
           <div className="rune-ring grid h-28 w-28 place-items-center rounded-full animate-pulseGlow">
             <span className={`font-display text-5xl font-black ${styles.text}`}>{card.name.charAt(0)}</span>
           </div>
