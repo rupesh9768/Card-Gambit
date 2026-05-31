@@ -15,6 +15,9 @@ export default {
       animation: {
         float: 'float 6s ease-in-out infinite',
         pulseGlow: 'pulseGlow 3s ease-in-out infinite',
+        fadeUp: 'fadeUp 0.55s ease-out both',
+        shimmer: 'shimmer 2.4s linear infinite',
+        softPulse: 'softPulse 2.8s ease-in-out infinite',
       },
       keyframes: {
         float: {
@@ -24,6 +27,18 @@ export default {
         pulseGlow: {
           '0%, 100%': { opacity: '0.45', transform: 'scale(1)' },
           '50%': { opacity: '0.9', transform: 'scale(1.04)' },
+        },
+        fadeUp: {
+          '0%': { opacity: '0', transform: 'translateY(14px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-120%)' },
+          '100%': { transform: 'translateX(120%)' },
+        },
+        softPulse: {
+          '0%, 100%': { boxShadow: '0 0 18px rgba(245, 158, 11, 0.16)' },
+          '50%': { boxShadow: '0 0 34px rgba(245, 158, 11, 0.34)' },
         },
       },
     },

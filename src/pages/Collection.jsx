@@ -41,8 +41,14 @@ export default function Collection() {
       </section>
 
       <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {data.cards.map((card) => (
-          <GameCard key={card.id} card={card} />
+        {data.cards.map((card, index) => (
+          <div
+            key={card.id}
+            className="animate-fadeUp"
+            style={{ animationDelay: `${Math.min(index * 45, 360)}ms` }}
+          >
+            <GameCard card={card} />
+          </div>
         ))}
       </section>
     </PageShell>

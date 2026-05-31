@@ -56,7 +56,7 @@ export default function GameCard({ card }) {
       onClick={handleClick}
       disabled={!collected}
       className={`group h-[27rem] w-full rounded-xl text-left transition duration-300 [perspective:1200px] ${
-        collected ? `cursor-pointer hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] ${styles.glow}` : 'cursor-not-allowed opacity-55 grayscale'
+        collected ? `cursor-pointer hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] ${styles.glow}` : 'cursor-not-allowed opacity-55 grayscale transition hover:opacity-65'
       }`}
       aria-label={collected ? `${card.name} card` : 'Locked card'}
     >
@@ -78,6 +78,7 @@ function CardFront({ card, styles, collected }) {
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-70" />
       <div className={`relative grid h-64 place-items-center overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br ${styles.art}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.15),transparent_34%)]" />
+        <div className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition group-hover:translate-x-[320%] group-hover:opacity-100 group-hover:duration-700" />
         {collected ? (
           <div className="rune-ring grid h-28 w-28 place-items-center rounded-full animate-pulseGlow">
             <span className={`font-display text-5xl font-black ${styles.text}`}>{card.name.charAt(0)}</span>
