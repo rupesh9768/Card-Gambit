@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Replace, Swords } from 'lucide-react';
+import { Grip, Replace, Swords } from 'lucide-react';
 import GameCard from '../components/GameCard.jsx';
 import PageShell from '../components/PageShell.jsx';
 import { getInventory } from '../lib/api.js';
@@ -10,6 +10,8 @@ export default function BattleDeck() {
   const [cards, setCards] = useState([]);
   const [deckIds, setDeckIds] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
+  const [draggedSlot, setDraggedSlot] = useState(null);
+  const [dropSlot, setDropSlot] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -50,23 +52,46 @@ export default function BattleDeck() {
     0,
   );
 
-  function moveSlot(index, direction) {
-    const targetIndex = index + direction;
-
-    if (targetIndex < 0 || targetIndex >= deckIds.length) {
+  function reorderSlot(fromIndex, toIndex) {
+    if (fromIndex === toIndex || fromIndex === null || toIndex === null) {
       return;
     }
-
     setDeckIds((current) => {
       const next = [...current];
-      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      const [movedCard] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, movedCard);
       return next;
     });
-    setSelectedSlot(targetIndex);
+    setSelectedSlot(toIndex);
   }
 
   function replaceSlot(card) {
     setDeckIds((current) => current.map((id, index) => (index === selectedSlot ? card.id : id)));
+  }
+
+  function handleDragStart(event, index) {
+    setDraggedSlot(index);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(index));
+  }
+
+  function handleDragOver(event, index) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropSlot(index);
+  }
+
+  function handleDrop(event, index) {
+    event.preventDefault();
+    const fromIndex = Number(event.dataTransfer.getData('text/plain'));
+    reorderSlot(Number.isInteger(fromIndex) ? fromIndex : draggedSlot, index);
+    setDraggedSlot(null);
+    setDropSlot(null);
+  }
+
+  function clearDragState() {
+    setDraggedSlot(null);
+    setDropSlot(null);
   }
 
   return (
@@ -91,15 +116,23 @@ export default function BattleDeck() {
       <section className="rounded-xl border border-amber-300/15 bg-slate-950/50 p-4 shadow-xl shadow-black/30">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="font-display text-2xl font-bold text-slate-50">Active Slots</h2>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Select slot, then replace</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Drag cards to reorder</p>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
           {deckCards.map((card, index) => (
             <div
               key={card.id}
-              className={`animate-fadeUp rounded-xl p-2 transition ${
+              draggable
+              onDragStart={(event) => handleDragStart(event, index)}
+              onDragOver={(event) => handleDragOver(event, index)}
+              onDragLeave={() => setDropSlot(null)}
+              onDrop={(event) => handleDrop(event, index)}
+              onDragEnd={clearDragState}
+              className={`animate-fadeUp rounded-xl p-2 transition duration-200 ${
                 selectedSlot === index ? 'bg-amber-300/10 ring-2 ring-amber-300/55' : 'bg-white/[0.025] ring-1 ring-white/10'
+              } ${dropSlot === index && draggedSlot !== index ? 'scale-[1.03] bg-sky-300/10 ring-2 ring-sky-300/60' : ''} ${
+                draggedSlot === index ? 'scale-95 opacity-60' : ''
               }`}
               style={{ animationDelay: `${index * 60}ms` }}
             >
@@ -108,18 +141,16 @@ export default function BattleDeck() {
                 onClick={() => setSelectedSlot(index)}
                 className="mb-3 flex w-full items-center justify-between rounded-full border border-white/10 bg-slate-950/70 px-3 py-2 text-sm font-bold text-slate-200 transition hover:border-amber-300/40 hover:text-amber-100"
               >
-                <span>Slot {index + 1}</span>
+                <span className="flex items-center gap-2">
+                  <Grip size={15} className="text-slate-500" />
+                  Slot {index + 1}
+                </span>
                 <span className="text-xs uppercase tracking-widest text-slate-500">
                   {selectedSlot === index ? 'Active' : 'Select'}
                 </span>
               </button>
 
               <GameCard card={card} size="compact" />
-
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <MoveButton label="Left" icon={ChevronLeft} disabled={index === 0} onClick={() => moveSlot(index, -1)} />
-                <MoveButton label="Right" icon={ChevronRight} disabled={index === deckCards.length - 1} onClick={() => moveSlot(index, 1)} />
-              </div>
             </div>
           ))}
         </div>
@@ -163,18 +194,4 @@ function readSavedDeck() {
   } catch {
     return [];
   }
-}
-
-function MoveButton({ label, icon: Icon, disabled, onClick }) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className="flex items-center justify-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-300 transition hover:border-sky-300/35 hover:text-sky-100 disabled:cursor-not-allowed disabled:opacity-30"
-    >
-      <Icon size={14} />
-      {label}
-    </button>
-  );
 }
