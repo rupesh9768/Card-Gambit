@@ -1,148 +1,278 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Bot, Coins, Crown, LibraryBig, Shield, Sparkles, Swords, Trophy } from 'lucide-react';
-import PageShell from '../components/PageShell.jsx';
-import { getDashboard, startGame } from '../lib/api.js';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Bot, ChevronRight, Coins, Gem, LibraryBig, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
+
+const player = {
+  name: 'NYRA',
+  rank: 'Novice Battler',
+  level: 27,
+  coins: 12850,
+  cards: '8/14',
+};
+
+const navLinks = [
+  { to: '/dashboard', label: 'Lobby' },
+  { to: '/inventory', label: 'Inventory' },
+  { to: '/battle-deck', label: 'Battle Deck' },
+];
+
+const battleModes = [
+  {
+    label: 'Play Rank',
+    subtitle: 'Climb the ranked arena',
+    icon: Shield,
+    mode: 'ranked',
+    tone: 'from-blue-500/95 via-violet-600/95 to-purple-950',
+    glow: 'shadow-[0_0_34px_rgba(124,58,237,0.36)] hover:shadow-[0_0_46px_rgba(6,182,212,0.42)]',
+  },
+  {
+    label: 'Play Classic',
+    subtitle: 'Fast duel with standard rules',
+    icon: Swords,
+    mode: 'classic',
+    tone: 'from-amber-500/95 via-orange-600/95 to-rose-950',
+    glow: 'shadow-[0_0_34px_rgba(245,158,11,0.32)] hover:shadow-[0_0_46px_rgba(251,113,133,0.42)]',
+  },
+  {
+    label: 'Play AI',
+    subtitle: 'Practice against the arcane engine',
+    icon: Bot,
+    mode: 'ai',
+    tone: 'from-emerald-400/95 via-teal-600/95 to-cyan-950',
+    glow: 'shadow-[0_0_34px_rgba(20,184,166,0.32)] hover:shadow-[0_0_46px_rgba(52,211,153,0.42)]',
+  },
+];
+
+const sparks = Array.from({ length: 26 }, (_, index) => ({
+  left: `${(index * 37) % 100}%`,
+  bottom: `${(index * 19) % 90}%`,
+  delay: `${(index % 9) * 0.55}s`,
+  duration: `${5.5 + (index % 5) * 0.65}s`,
+}));
+
+const cardGhosts = [
+  { left: '8%', top: '18%', delay: '0s', rotate: '-12deg' },
+  { left: '26%', top: '72%', delay: '1.5s', rotate: '9deg' },
+  { left: '72%', top: '12%', delay: '0.7s', rotate: '13deg' },
+  { left: '86%', top: '66%', delay: '2.2s', rotate: '-8deg' },
+];
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [dashboard, setDashboard] = useState(null);
-  const [status, setStatus] = useState('');
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    getDashboard()
-      .then(setDashboard)
-      .catch(() => setError('Backend is not connected.'));
-  }, []);
-
-  const player = dashboard?.player;
-  const collection = dashboard?.collection;
-
-  async function handlePlay(mode) {
+  function handleBattle(mode) {
     if (mode === 'ai') {
       navigate('/duel');
       return;
     }
 
-    setStatus('Preparing arena...');
-    try {
-      const result = await startGame(mode);
-      setStatus(result.message);
-    } catch {
-      setStatus('Battle server is not ready yet.');
-    }
+    navigate('/duel');
   }
 
   return (
-    <PageShell>
-      <section className="mx-auto grid max-w-6xl gap-5 py-4 lg:grid-cols-[0.85fr_1.15fr]">
-        <aside className="glass-panel animate-fadeUp rounded-xl p-5">
-          <div className="relative overflow-hidden rounded-lg border border-amber-300/20 bg-gradient-to-br from-amber-500/15 via-slate-950 to-violet-950/50 p-5">
-            <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-amber-300/10 blur-3xl" />
-            <div className="relative flex items-center gap-4">
-              <div className="grid h-20 w-20 place-items-center rounded-full border border-amber-300/35 bg-black/30 shadow-ember animate-softPulse">
-                <Crown className="text-amber-200" size={38} />
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.24em] text-amber-200">Champion</p>
-                <h1 className="mt-1 font-display text-4xl font-black text-slate-50">{player?.username ?? 'Loading'}</h1>
-                <p className="text-sm font-semibold text-slate-400">{player?.title ?? 'Connecting...'}</p>
-              </div>
-            </div>
-          </div>
+    <main className="lobby-screen">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {cardGhosts.map((card, index) => (
+          <span
+            key={index}
+            className="lobby-card-ghost"
+            style={{ left: card.left, top: card.top, animationDelay: card.delay, rotate: card.rotate }}
+          />
+        ))}
+        {sparks.map((spark, index) => (
+          <span
+            key={index}
+            className="lobby-spark"
+            style={{ left: spark.left, bottom: spark.bottom, animationDelay: spark.delay, animationDuration: spark.duration }}
+          />
+        ))}
+      </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            <InfoTile icon={Trophy} label="Level" value={player?.level ?? '-'} tone="text-violet-200" />
-            <InfoTile icon={Coins} label="Coins" value={player ? player.coins.toLocaleString() : '-'} tone="text-amber-200" />
-            <InfoTile icon={LibraryBig} label="Cards" value={collection ? `${collection.collected}/${collection.total}` : '-'} tone="text-sky-200" />
-          </div>
+      <div className="relative z-10 flex h-screen flex-col overflow-hidden px-4 py-4 sm:px-6 lg:px-8">
+        <motion.header
+          className="flex h-16 shrink-0 items-center justify-between rounded-full border border-white/10 bg-black/25 px-4 shadow-2xl shadow-black/30 backdrop-blur-xl"
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+        >
+          <Link to="/" className="group flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-full border border-[#f5c518]/40 bg-[#f5c518]/10 text-[#f5c518] shadow-ember transition group-hover:scale-105">
+              <Gem size={22} />
+            </span>
+            <span>
+              <span className="lobby-title-glow block font-display text-xl font-black uppercase leading-none tracking-wide text-white">
+                Card Gambit
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-200/70">Lobby</span>
+            </span>
+          </Link>
 
-          {error && <p className="mt-4 rounded-lg border border-rose-300/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200">{error}</p>}
-        </aside>
+          <nav className="hidden items-center gap-2 md:flex">
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  `rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
+                    isActive
+                      ? 'border border-[#f5c518]/40 bg-[#f5c518]/12 text-[#f5c518] shadow-ember'
+                      : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+        </motion.header>
 
-        <section className="grid gap-5">
-          <div className="animate-fadeUp rounded-xl border border-white/10 bg-slate-950/55 p-5 shadow-xl shadow-black/30 [animation-delay:80ms]">
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.28em] text-slate-500">Arena Gate</p>
-                <h2 className="mt-1 font-display text-3xl font-black text-slate-50">Choose Battle</h2>
-              </div>
-              <Sparkles className="text-amber-200" size={26} />
-            </div>
-
-            <div className="grid gap-4">
-              <PlayButton icon={Shield} label="Play Rank" subtitle="Climb the ladder" tone="from-violet-500 via-indigo-500 to-sky-500" onClick={() => handlePlay('ranked')} />
-              <PlayButton icon={Swords} label="Play Classic" subtitle="Fast casual match" tone="from-amber-400 via-orange-500 to-rose-500" onClick={() => handlePlay('classic')} />
-              <PlayButton icon={Bot} label="Play AI" subtitle="Practice your deck" tone="from-emerald-400 via-teal-500 to-sky-500" onClick={() => handlePlay('ai')} />
-            </div>
-
-            {status && (
-              <p className="mt-4 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm font-semibold text-slate-300 animate-fadeUp">
-                {status}
-              </p>
-            )}
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <MenuLink to="/inventory" icon={LibraryBig} label="Inventory" detail="Cards and locks" tone="hover:border-sky-300/40 hover:shadow-frost" />
-            <MenuLink to="/battle-deck" icon={Swords} label="Battle Deck" detail="Manage 5 cards" tone="hover:border-amber-300/40 hover:shadow-ember" />
-          </div>
+        <section className="grid min-h-0 flex-1 grid-cols-1 gap-5 py-5 lg:grid-cols-[0.9fr_1.35fr]">
+          <PlayerProfile />
+          <ArenaGate onBattle={handleBattle} />
         </section>
-      </section>
-    </PageShell>
+      </div>
+    </main>
   );
 }
 
-function InfoTile({ icon: Icon, label, value, tone }) {
+function PlayerProfile() {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.045] p-3 text-center transition hover:-translate-y-0.5 hover:bg-white/[0.075]">
-      <Icon className={`mx-auto ${tone}`} size={18} />
-      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-black text-slate-100">{value}</p>
-    </div>
+    <motion.aside
+      className="lobby-glass relative min-h-0 overflow-hidden rounded-3xl p-5"
+      initial={{ opacity: 0, x: -28 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.55 }}
+    >
+      <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-violet-500/20 blur-3xl" />
+      <div className="absolute -right-16 bottom-10 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" />
+
+      <p className="relative text-xs font-black uppercase tracking-[0.28em] text-[#f5c518]">Player Profile</p>
+      <div className="relative mt-5 flex items-center gap-5">
+        <div className="lobby-portrait grid h-32 w-32 shrink-0 place-items-center border border-[#f5c518]/60 bg-gradient-to-br from-[#f5c518]/30 via-violet-600/30 to-cyan-400/25">
+          <UserRound className="text-amber-100 drop-shadow-[0_0_18px_rgba(245,197,24,0.65)]" size={64} />
+        </div>
+
+        <div className="min-w-0">
+          <h1 className="lobby-title-glow font-display text-5xl font-black leading-none text-white">{player.name}</h1>
+          <p className="mt-2 text-sm font-black uppercase tracking-[0.22em] text-cyan-100/80">{player.rank}</p>
+          <div className="mt-4 h-3 overflow-hidden rounded-full border border-[#f5c518]/30 bg-black/35">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-[#f5c518] via-cyan-300 to-violet-400"
+              initial={{ width: '0%' }}
+              animate={{ width: '68%' }}
+              transition={{ delay: 0.45, duration: 0.9, ease: 'easeOut' }}
+            />
+          </div>
+          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Rank progress 68%</p>
+        </div>
+      </div>
+
+      <div className="relative mt-6 grid grid-cols-3 gap-3">
+        <StatTile icon={Trophy} label="Level" value={player.level} tone="text-violet-200" />
+        <StatTile icon={Coins} label="Coins" value={player.coins.toLocaleString()} tone="text-[#f5c518]" />
+        <StatTile icon={LibraryBig} label="Cards" value={player.cards} tone="text-cyan-200" badge="8 of 14 collected" />
+      </div>
+    </motion.aside>
   );
 }
 
-function PlayButton({ icon: Icon, label, subtitle, tone, onClick }) {
+function StatTile({ icon: Icon, label, value, tone, badge }) {
   return (
-    <button
+    <motion.div
+      className="group relative rounded-2xl border border-white/10 bg-white/[0.055] p-4 text-center backdrop-blur"
+      whileHover={{ y: -5, scale: 1.04 }}
+      whileTap={{ scale: 0.97 }}
+    >
+      <span className="mx-auto grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-black/30 shadow-ember">
+        <Icon className={tone} size={21} />
+      </span>
+      <p className="mt-3 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{label}</p>
+      <p className="mt-1 font-display text-xl font-black text-white">{value}</p>
+      {badge && (
+        <span className="pointer-events-none absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-cyan-300/35 bg-cyan-950/90 px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100 opacity-0 shadow-frost transition group-hover:opacity-100">
+          {badge}
+        </span>
+      )}
+    </motion.div>
+  );
+}
+
+function ArenaGate({ onBattle }) {
+  return (
+    <motion.section
+      className="lobby-glass relative min-h-0 overflow-hidden rounded-3xl p-5"
+      initial={{ opacity: 0, x: 32 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.55, delay: 0.08 }}
+    >
+      <div className="absolute -right-12 -top-20 h-60 w-60 rounded-full bg-[#f5c518]/10 blur-3xl" />
+      <div className="relative flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200/75">Arena Gate</p>
+          <h2 className="lobby-title-glow mt-1 font-display text-4xl font-black text-white">Choose Battle</h2>
+        </div>
+        <Sparkles className="text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.65)]" size={30} />
+      </div>
+
+      <div className="relative mt-5 grid gap-3">
+        {battleModes.map((mode, index) => (
+          <BattleButton key={mode.label} mode={mode} index={index} onClick={() => onBattle(mode.mode)} />
+        ))}
+      </div>
+
+      <div className="relative mt-4 grid grid-cols-2 gap-3">
+        <Shortcut to="/inventory" icon={LibraryBig} label="Inventory" />
+        <Shortcut to="/battle-deck" icon={Swords} label="Battle Deck" />
+      </div>
+    </motion.section>
+  );
+}
+
+function BattleButton({ mode, index, onClick }) {
+  const Icon = mode.icon;
+
+  return (
+    <motion.button
       type="button"
       onClick={onClick}
-      className={`game-button group flex min-h-20 items-center justify-between rounded-xl border border-white/15 bg-gradient-to-r ${tone} px-5 py-4 text-left shadow-xl shadow-black/35 transition duration-300 hover:-translate-y-1 hover:shadow-ember active:translate-y-0 active:scale-[0.98]`}
+      className={`battle-card-panel group relative min-h-[7.2rem] overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-r ${mode.tone} p-4 text-left ${mode.glow}`}
+      initial={{ opacity: 0, x: 36 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.45, delay: 0.18 + index * 0.1 }}
+      whileHover={{ y: -4, scale: 1.015 }}
+      whileTap={{ scale: 0.97 }}
     >
-      <span className="relative flex items-center gap-4">
-        <span className="grid h-12 w-12 place-items-center rounded-lg bg-slate-950/45 text-white ring-1 ring-white/20 transition group-hover:scale-110">
-          <Icon size={24} />
+      <div className="relative z-10 flex h-full items-center justify-between gap-4">
+        <span className="flex items-center gap-4">
+          <span className="grid h-16 w-16 place-items-center rounded-2xl border border-white/20 bg-black/28 text-white shadow-2xl transition group-hover:scale-110">
+            <Icon size={30} />
+          </span>
+          <span>
+            <span className="block font-display text-3xl font-black uppercase leading-none text-white drop-shadow-[0_0_16px_rgba(255,255,255,0.3)]">
+              {mode.label}
+            </span>
+            <span className="mt-2 block text-xs font-black uppercase tracking-[0.2em] text-white/72">{mode.subtitle}</span>
+          </span>
         </span>
-        <span>
-          <span className="block font-display text-2xl font-black leading-none text-white">{label}</span>
-          <span className="mt-1 block text-xs font-bold uppercase tracking-[0.2em] text-white/70">{subtitle}</span>
-        </span>
-      </span>
-      <span className="relative text-2xl font-black text-white/70 transition group-hover:translate-x-1 group-hover:text-white">
-        {'>'}
-      </span>
-    </button>
+        <ChevronRight className="text-white/75 transition group-hover:translate-x-2 group-hover:text-white" size={34} />
+      </div>
+    </motion.button>
   );
 }
 
-function MenuLink({ to, icon: Icon, label, detail, tone }) {
+function Shortcut({ to, icon: Icon, label }) {
   return (
-    <Link
-      to={to}
-      className={`glass-panel group flex animate-fadeUp items-center justify-between rounded-xl px-5 py-4 transition hover:-translate-y-0.5 ${tone}`}
-    >
-      <span className="flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-100 transition group-hover:scale-110">
-          <Icon size={20} />
+    <motion.div whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+      <Link
+        to={to}
+        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-slate-100 backdrop-blur transition hover:border-[#f5c518]/45 hover:text-[#f5c518] hover:shadow-ember"
+      >
+        <span className="flex items-center gap-3">
+          <Icon size={19} />
+          {label}
         </span>
-        <span>
-          <span className="block font-bold text-slate-100">{label}</span>
-          <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{detail}</span>
-        </span>
-      </span>
-      <span className="text-sm font-black text-slate-500 transition group-hover:text-slate-200">{'>'}</span>
-    </Link>
+        <ChevronRight size={18} />
+      </Link>
+    </motion.div>
   );
 }

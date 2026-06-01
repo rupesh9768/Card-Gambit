@@ -128,13 +128,13 @@ a {
 }
 
 .duel-card-size-opponent {
-  width: clamp(4.4rem, 6.6vw, 6.9rem);
+  width: clamp(4.6rem, 7vw, 7.2rem);
   aspect-ratio: 2.35 / 3.5;
   height: auto;
 }
 
 .duel-card-size-hand {
-  width: clamp(4.2rem, 7.4vw, 8.25rem);
+  width: clamp(4.8rem, 7.8vw, 8.6rem);
   aspect-ratio: 2.35 / 3.5;
   height: auto;
 }
@@ -156,6 +156,143 @@ a {
 .duel-empty-slot {
   width: clamp(7.5rem, 9.6vw, 10.5rem);
   aspect-ratio: 2.35 / 3.5;
+}
+
+.duel-card-name {
+  display: -webkit-box;
+  min-height: 1.75em;
+  max-height: 2.15em;
+  overflow: hidden;
+  text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.lobby-screen {
+  position: relative;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(245, 197, 24, 0.14), transparent 22rem),
+    radial-gradient(circle at 18% 18%, rgba(124, 58, 237, 0.28), transparent 24rem),
+    radial-gradient(circle at 82% 20%, rgba(6, 182, 212, 0.2), transparent 22rem),
+    linear-gradient(135deg, #0a0b1a 0%, #130826 48%, #061525 100%);
+}
+
+.lobby-screen::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(6, 182, 212, 0.1) 38%, transparent 54%),
+    linear-gradient(70deg, transparent 20%, rgba(245, 197, 24, 0.08) 50%, transparent 76%);
+  background-size: 220% 220%;
+  animation: lobby-aurora 12s ease-in-out infinite;
+}
+
+.lobby-card-ghost {
+  position: absolute;
+  width: 4.5rem;
+  aspect-ratio: 2.35 / 3.5;
+  border: 1px solid rgba(245, 197, 24, 0.2);
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(124, 58, 237, 0.06));
+  box-shadow: 0 0 28px rgba(6, 182, 212, 0.18);
+  opacity: 0.35;
+  animation: lobby-card-drift 16s ease-in-out infinite;
+}
+
+.lobby-spark {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(245, 197, 24, 0.9);
+  box-shadow: 0 0 12px rgba(245, 197, 24, 0.8);
+  animation: lobby-spark-rise 7s linear infinite;
+}
+
+.lobby-glass {
+  border: 1px solid rgba(245, 197, 24, 0.26);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+  box-shadow:
+    0 24px 90px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 0 34px rgba(245, 197, 24, 0.09);
+  backdrop-filter: blur(18px);
+}
+
+.lobby-title-glow {
+  text-shadow: 0 0 18px rgba(245, 197, 24, 0.45), 0 0 34px rgba(124, 58, 237, 0.25);
+}
+
+.lobby-portrait {
+  clip-path: polygon(50% 0%, 92% 20%, 92% 78%, 50% 100%, 8% 78%, 8% 20%);
+  animation: portrait-pulse 2.8s ease-in-out infinite;
+}
+
+.battle-card-panel::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  transform: translateX(-130%);
+  transition: transform 0.7s ease;
+}
+
+.battle-card-panel:hover::after {
+  transform: translateX(130%);
+}
+
+@keyframes lobby-aurora {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes lobby-card-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-10deg);
+  }
+
+  50% {
+    transform: translate3d(1.2rem, -1.5rem, 0) rotate(8deg);
+  }
+}
+
+@keyframes lobby-spark-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.7);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-18rem) scale(1.2);
+  }
+}
+
+@keyframes portrait-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 22px rgba(245, 197, 24, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 44px rgba(245, 197, 24, 0.58);
+  }
 }
 
 .card-from-bottom {

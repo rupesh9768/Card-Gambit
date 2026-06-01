@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Flag, RotateCcw, Swords } from 'lucide-react';
+import { Flag, Home, RotateCcw, Swords } from 'lucide-react';
 import BattleCard from '../components/BattleCard.jsx';
 import { getDuelResult, getInventory, playDuelRound, startDuel } from '../lib/api.js';
 
@@ -92,8 +93,8 @@ export default function DuelPage() {
       queueBattleStep(() => {
         playSound('card-impact');
         setBattlePhase('impact');
-      }, 520);
-      queueBattleStep(() => setBattlePhase('result'), 1050);
+      }, 920);
+      queueBattleStep(() => setBattlePhase('result'), 1500);
 
       const finalResult = await getDuelResult(duel.duelId);
 
@@ -101,13 +102,13 @@ export default function DuelPage() {
         queueBattleStep(() => {
           setMatchResult(finalResult);
           setBattlePhase('result');
-        }, 1900);
+        }, 2400);
       } else {
         queueBattleStep(() => {
           setRoundResult(null);
           setSelectedCardId(null);
           setBattlePhase('idle');
-        }, 2400);
+        }, 3400);
       }
     } catch {
       setError('Could not play round.');
@@ -307,13 +308,13 @@ function ArenaSlot({ side, phase, result, previewCard }) {
   const isAi = side === 'ai';
 
   return (
-    <motion.div
+      <motion.div
       className="mx-auto grid place-items-center gap-2"
       initial={{
         opacity: 0,
-        y: side === 'player' ? 92 : -92,
-        scale: 0.86,
-        rotate: side === 'player' ? -6 : 6,
+        y: side === 'player' ? 190 : -165,
+        scale: 0.78,
+        rotate: side === 'player' ? -3 : 3,
         rotateY: isAi ? 180 : 0,
       }}
       animate={
@@ -321,15 +322,15 @@ function ArenaSlot({ side, phase, result, previewCard }) {
           ? {
               opacity: 1,
               y: 0,
-              scale: [1, 1.22, 1],
+              scale: [1, 1.24, 1],
               rotate: 0,
               rotateY: 0,
               x: side === 'player' ? [0, 16, -9, 7, 0] : [0, -16, 9, -7, 0],
             }
-          : { opacity: 1, y: 0, scale: previewOnly ? 1.08 : 1, rotate: 0, rotateY: 0, x: 0 }
+          : { opacity: 1, y: 0, scale: previewOnly ? 1.12 : 1, rotate: 0, rotateY: 0, x: 0 }
       }
       exit={{ opacity: 0, y: side === 'player' ? 80 : -80, scale: 0.85 }}
-      transition={{ duration: isAi ? 0.68 : 0.56, delay: isAi ? 0.22 : 0, ease: 'easeInOut' }}
+      transition={{ duration: isAi ? 1 : 0.9, delay: isAi ? 0.35 : 0, ease: [0.22, 1, 0.36, 1] }}
       style={{ transformStyle: 'preserve-3d' }}
     >
       <BattleCard card={card} selected={won || previewOnly} variant="arena" />
@@ -357,9 +358,9 @@ function ArenaSlot({ side, phase, result, previewCard }) {
 }
 
 function RoundCenter({ phase, result, matchResult, loading }) {
-  const winnerKey = result?.roundWinner ?? matchResult?.winner;
+  const winnerKey = matchResult?.winner ?? result?.roundWinner;
   const winner = getWinnerLabel(winnerKey);
-  const showWinner = phase === 'result' && (result || matchResult);
+  const showWinner = phase === 'result' && Boolean(winnerKey);
 
   return (
     <div className="relative z-10 grid min-w-[7rem] place-items-center text-center sm:min-w-40">
@@ -430,6 +431,15 @@ function StatusOverlay({ loading, error, matchResult, onRestart }) {
             <RotateCcw size={16} />
             Rematch
           </button>
+        )}
+        {matchResult && (
+          <Link
+            to="/dashboard"
+            className="ml-3 mt-5 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/60 hover:shadow-frost"
+          >
+            <Home size={16} />
+            Home
+          </Link>
         )}
       </motion.div>
     </div>

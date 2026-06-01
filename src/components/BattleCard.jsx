@@ -15,8 +15,8 @@ const sizeStyles = {
 };
 
 const imageHeights = {
-  opponent: 'h-[48%]',
-  hand: 'h-[44%]',
+  opponent: 'h-[54%]',
+  hand: 'h-[52%]',
   arena: 'h-[49%]',
 };
 
@@ -34,6 +34,7 @@ export default function BattleCard({
   const isClickable = Boolean(onClick) && !used;
   const rarityClass = rarityStyles[card?.rarity] ?? rarityStyles.Unknown;
   const compact = variant === 'opponent';
+  const hand = variant === 'hand';
   const showAbility = variant === 'arena';
 
   return (
@@ -66,10 +67,10 @@ export default function BattleCard({
       ) : (
         <div className="relative z-10 flex h-full flex-col">
           <div className="mb-1 flex items-center justify-between gap-1">
-            <p className="truncate text-[8px] font-black uppercase tracking-[0.18em] text-slate-500 sm:text-[9px]">
+            <p className="truncate text-[7px] font-black uppercase tracking-[0.16em] text-slate-500 sm:text-[8px]">
               {card.species}
             </p>
-            <span className="rounded-full border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[8px] font-bold text-slate-300 sm:text-[9px]">
+            <span className="rounded-full border border-white/10 bg-white/[0.06] px-1.5 py-0.5 text-[7px] font-bold text-slate-300 sm:text-[8px]">
               {card.rarity}
             </span>
           </div>
@@ -83,7 +84,7 @@ export default function BattleCard({
           </div>
 
           <div className="mt-1.5 min-h-0">
-            <h3 className={`font-display font-black leading-tight text-slate-50 ${compact ? 'truncate text-xs' : 'text-sm sm:text-base'}`}>
+            <h3 className={`duel-card-name font-display font-black leading-tight text-slate-50 ${compact || hand ? 'text-[10px] sm:text-xs' : 'text-sm sm:text-base'}`}>
               {card.name}
             </h3>
             {showAbility && <p className="mt-1 truncate text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">{card.ability}</p>}
@@ -109,7 +110,7 @@ export default function BattleCard({
 
 function MiniStat({ label, value }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.05] px-1 py-0.5">
+    <div className="rounded-md border border-white/10 bg-white/[0.05] px-0.5 py-0.5">
       <p className="text-[7px] font-bold uppercase tracking-widest text-slate-500 sm:text-[8px]">{label}</p>
       <p className="text-[11px] font-black text-slate-100 sm:text-xs">{value}</p>
     </div>

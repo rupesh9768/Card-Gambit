@@ -10,6 +10,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/lobby" element={<Navigate to="/dashboard" replace />} />
       <Route path="/inventory" element={<Collection />} />
       <Route path="/collection" element={<Navigate to="/inventory" replace />} />
       <Route path="/battle-deck" element={<BattleDeck />} />
