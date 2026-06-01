@@ -16,7 +16,7 @@ export default function PageShell({ children, showBack = false }) {
             <Gem size={20} />
           </span>
           <span className="font-display text-lg font-bold tracking-wide text-slate-100 sm:text-xl">
-            Battle Card Game
+            Card Gambit
           </span>
         </Link>
 

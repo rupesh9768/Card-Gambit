@@ -1,12 +1,14 @@
 import 'dotenv/config';
 import express from 'express';
 import { connectDatabase, isDatabaseConnected } from './db.js';
+import duelRoutes from './routes/duel.js';
 import { collectCard, getCards, getCollectionSummary, getPlayer, getRarities, getSpecies } from './services/gameService.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
 
 app.use(express.json());
+app.use('/api/duel', duelRoutes);
 
 app.get('/api/health', (_request, response) => {
   response.json({
@@ -117,6 +119,6 @@ app.use((error, _request, response, _next) => {
 
 connectDatabase().finally(() => {
   app.listen(PORT, () => {
-    console.log(`Battle Card Game API running on http://127.0.0.1:${PORT}`);
+    console.log(`Card Gambit API running on http://127.0.0.1:${PORT}`);
   });
 });

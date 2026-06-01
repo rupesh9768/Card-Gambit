@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Bot, Coins, Crown, LibraryBig, Shield, Swords, Trophy } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Bot, Coins, Crown, LibraryBig, Shield, Sparkles, Swords, Trophy } from 'lucide-react';
 import PageShell from '../components/PageShell.jsx';
 import { getDashboard, startGame } from '../lib/api.js';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -19,7 +20,12 @@ export default function Dashboard() {
   const collection = dashboard?.collection;
 
   async function handlePlay(mode) {
-    setStatus('Finding battle...');
+    if (mode === 'ai') {
+      navigate('/duel');
+      return;
+    }
+
+    setStatus('Preparing arena...');
     try {
       const result = await startGame(mode);
       setStatus(result.message);
@@ -30,91 +36,59 @@ export default function Dashboard() {
 
   return (
     <PageShell>
-      <section className="mx-auto grid max-w-4xl gap-6 py-4">
-        <div className="glass-panel animate-fadeUp rounded-lg p-5">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="grid h-16 w-16 place-items-center rounded-full border border-amber-300/25 bg-amber-500/10 shadow-ember animate-softPulse">
-                <Crown className="text-amber-200" size={30} />
+      <section className="mx-auto grid max-w-6xl gap-5 py-4 lg:grid-cols-[0.85fr_1.15fr]">
+        <aside className="glass-panel animate-fadeUp rounded-xl p-5">
+          <div className="relative overflow-hidden rounded-lg border border-amber-300/20 bg-gradient-to-br from-amber-500/15 via-slate-950 to-violet-950/50 p-5">
+            <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-amber-300/10 blur-3xl" />
+            <div className="relative flex items-center gap-4">
+              <div className="grid h-20 w-20 place-items-center rounded-full border border-amber-300/35 bg-black/30 shadow-ember animate-softPulse">
+                <Crown className="text-amber-200" size={38} />
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-200">Player Details</p>
-                <h1 className="mt-1 font-display text-3xl font-black text-slate-50">{player?.username ?? 'Loading'}</h1>
-                <p className="text-sm text-slate-400">{player?.title ?? 'Connecting...'}</p>
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-amber-200">Champion</p>
+                <h1 className="mt-1 font-display text-4xl font-black text-slate-50">{player?.username ?? 'Loading'}</h1>
+                <p className="text-sm font-semibold text-slate-400">{player?.title ?? 'Connecting...'}</p>
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-3 gap-2 sm:w-80">
-              <InfoTile icon={Trophy} label="Level" value={player?.level ?? '-'} tone="text-violet-200" />
-              <InfoTile icon={Coins} label="Coins" value={player ? player.coins.toLocaleString() : '-'} tone="text-amber-200" />
-              <InfoTile
-                icon={LibraryBig}
-                label="Cards"
-                value={collection ? `${collection.collected}/${collection.total}` : '-'}
-                tone="text-sky-200"
-              />
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            <InfoTile icon={Trophy} label="Level" value={player?.level ?? '-'} tone="text-violet-200" />
+            <InfoTile icon={Coins} label="Coins" value={player ? player.coins.toLocaleString() : '-'} tone="text-amber-200" />
+            <InfoTile icon={LibraryBig} label="Cards" value={collection ? `${collection.collected}/${collection.total}` : '-'} tone="text-sky-200" />
+          </div>
+
+          {error && <p className="mt-4 rounded-lg border border-rose-300/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200">{error}</p>}
+        </aside>
+
+        <section className="grid gap-5">
+          <div className="animate-fadeUp rounded-xl border border-white/10 bg-slate-950/55 p-5 shadow-xl shadow-black/30 [animation-delay:80ms]">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.28em] text-slate-500">Arena Gate</p>
+                <h2 className="mt-1 font-display text-3xl font-black text-slate-50">Choose Battle</h2>
+              </div>
+              <Sparkles className="text-amber-200" size={26} />
             </div>
-          </div>
-          {error && <p className="mt-4 text-sm font-semibold text-rose-200">{error}</p>}
-        </div>
 
-        <div className="animate-fadeUp rounded-lg border border-white/10 bg-slate-950/45 p-5 shadow-xl shadow-black/25 [animation-delay:90ms]">
-          <p className="text-center text-xs font-bold uppercase tracking-[0.28em] text-slate-500">Choose Battle</p>
+            <div className="grid gap-4">
+              <PlayButton icon={Shield} label="Play Rank" subtitle="Climb the ladder" tone="from-violet-500 via-indigo-500 to-sky-500" onClick={() => handlePlay('ranked')} />
+              <PlayButton icon={Swords} label="Play Classic" subtitle="Fast casual match" tone="from-amber-400 via-orange-500 to-rose-500" onClick={() => handlePlay('classic')} />
+              <PlayButton icon={Bot} label="Play AI" subtitle="Practice your deck" tone="from-emerald-400 via-teal-500 to-sky-500" onClick={() => handlePlay('ai')} />
+            </div>
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
-            <PlayButton
-              icon={Shield}
-              label="Play Rank"
-              subtitle="Competitive"
-              tone="from-violet-500 via-indigo-500 to-sky-500"
-              onClick={() => handlePlay('ranked')}
-            />
-            <PlayButton
-              icon={Swords}
-              label="Play Classic"
-              subtitle="Casual"
-              tone="from-amber-400 via-orange-500 to-rose-500"
-              onClick={() => handlePlay('classic')}
-            />
-            <PlayButton
-              icon={Bot}
-              label="Play AI"
-              subtitle="Practice"
-              tone="from-emerald-400 via-teal-500 to-sky-500"
-              onClick={() => handlePlay('ai')}
-            />
+            {status && (
+              <p className="mt-4 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm font-semibold text-slate-300 animate-fadeUp">
+                {status}
+              </p>
+            )}
           </div>
 
-          {status && (
-            <p className="mt-4 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm font-semibold text-slate-300 animate-fadeUp">
-              {status}
-            </p>
-          )}
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Link
-          to="/inventory"
-          className="glass-panel group flex animate-fadeUp items-center justify-between rounded-full px-5 py-4 transition hover:-translate-y-0.5 hover:border-sky-300/40 hover:shadow-frost [animation-delay:160ms]"
-        >
-          <span className="flex items-center gap-3 font-bold text-slate-100">
-            <LibraryBig className="text-sky-200 transition group-hover:scale-110" size={20} />
-            Inventory
-          </span>
-          <span className="text-sm font-bold text-slate-500 transition group-hover:text-slate-200">Owned Cards</span>
-        </Link>
-
-          <Link
-            to="/battle-deck"
-            className="glass-panel group flex animate-fadeUp items-center justify-between rounded-full px-5 py-4 transition hover:-translate-y-0.5 hover:border-amber-300/40 hover:shadow-ember [animation-delay:210ms]"
-          >
-            <span className="flex items-center gap-3 font-bold text-slate-100">
-              <Swords className="text-amber-200 transition group-hover:scale-110" size={20} />
-              Battle Deck
-            </span>
-            <span className="text-sm font-bold text-slate-500 transition group-hover:text-slate-200">5 Cards</span>
-          </Link>
-        </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <MenuLink to="/inventory" icon={LibraryBig} label="Inventory" detail="Cards and locks" tone="hover:border-sky-300/40 hover:shadow-frost" />
+            <MenuLink to="/battle-deck" icon={Swords} label="Battle Deck" detail="Manage 5 cards" tone="hover:border-amber-300/40 hover:shadow-ember" />
+          </div>
+        </section>
       </section>
     </PageShell>
   );
@@ -122,7 +96,7 @@ export default function Dashboard() {
 
 function InfoTile({ icon: Icon, label, value, tone }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-center transition hover:-translate-y-0.5 hover:bg-white/[0.07]">
+    <div className="rounded-lg border border-white/10 bg-white/[0.045] p-3 text-center transition hover:-translate-y-0.5 hover:bg-white/[0.075]">
       <Icon className={`mx-auto ${tone}`} size={18} />
       <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
       <p className="mt-1 text-lg font-black text-slate-100">{value}</p>
@@ -135,10 +109,10 @@ function PlayButton({ icon: Icon, label, subtitle, tone, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`game-button group flex min-h-20 items-center justify-between rounded-full border border-white/15 bg-gradient-to-r ${tone} px-5 py-4 text-left shadow-xl shadow-black/35 transition duration-300 hover:-translate-y-1 hover:shadow-ember active:translate-y-0 active:scale-[0.98]`}
+      className={`game-button group flex min-h-20 items-center justify-between rounded-xl border border-white/15 bg-gradient-to-r ${tone} px-5 py-4 text-left shadow-xl shadow-black/35 transition duration-300 hover:-translate-y-1 hover:shadow-ember active:translate-y-0 active:scale-[0.98]`}
     >
       <span className="relative flex items-center gap-4">
-        <span className="grid h-12 w-12 place-items-center rounded-full bg-slate-950/45 text-white ring-1 ring-white/20 transition group-hover:scale-110">
+        <span className="grid h-12 w-12 place-items-center rounded-lg bg-slate-950/45 text-white ring-1 ring-white/20 transition group-hover:scale-110">
           <Icon size={24} />
         </span>
         <span>
@@ -146,9 +120,29 @@ function PlayButton({ icon: Icon, label, subtitle, tone, onClick }) {
           <span className="mt-1 block text-xs font-bold uppercase tracking-[0.2em] text-white/70">{subtitle}</span>
         </span>
       </span>
-      <span className="relative hidden text-2xl font-black text-white/70 transition group-hover:translate-x-1 group-hover:text-white sm:block">
+      <span className="relative text-2xl font-black text-white/70 transition group-hover:translate-x-1 group-hover:text-white">
         {'>'}
       </span>
     </button>
+  );
+}
+
+function MenuLink({ to, icon: Icon, label, detail, tone }) {
+  return (
+    <Link
+      to={to}
+      className={`glass-panel group flex animate-fadeUp items-center justify-between rounded-xl px-5 py-4 transition hover:-translate-y-0.5 ${tone}`}
+    >
+      <span className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-100 transition group-hover:scale-110">
+          <Icon size={20} />
+        </span>
+        <span>
+          <span className="block font-bold text-slate-100">{label}</span>
+          <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{detail}</span>
+        </span>
+      </span>
+      <span className="text-sm font-black text-slate-500 transition group-hover:text-slate-200">{'>'}</span>
+    </Link>
   );
 }

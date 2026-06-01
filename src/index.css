@@ -90,3 +90,179 @@ a {
 .game-button:hover::before {
   transform: translateX(120%);
 }
+
+.duel-screen {
+  height: 100vh;
+  overflow: hidden;
+  perspective: 1200px;
+}
+
+.duel-screen::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+    radial-gradient(circle, rgba(125, 211, 252, 0.18) 1px, transparent 1px);
+  background-position: 0 0, 28px 34px;
+  background-size: 78px 78px, 112px 112px;
+  mask-image: radial-gradient(circle at center, black, transparent 78%);
+  opacity: 0.22;
+  animation: duel-particles 14s linear infinite;
+}
+
+.duel-arena {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(245, 158, 11, 0.16), transparent 12rem),
+    radial-gradient(circle at 28% 50%, rgba(14, 165, 233, 0.13), transparent 14rem),
+    radial-gradient(circle at 72% 50%, rgba(168, 85, 247, 0.16), transparent 14rem),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.34), rgba(2, 6, 23, 0.74));
+}
+
+.duel-card-back {
+  background-image:
+    radial-gradient(circle at 50% 42%, rgba(245, 158, 11, 0.18), transparent 34%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 10px),
+    linear-gradient(135deg, #111827, #0f1024 48%, #2e1065);
+}
+
+.duel-card-size-opponent {
+  width: clamp(4.4rem, 6.6vw, 6.9rem);
+  aspect-ratio: 2.35 / 3.5;
+  height: auto;
+}
+
+.duel-card-size-hand {
+  width: clamp(4.2rem, 7.4vw, 8.25rem);
+  aspect-ratio: 2.35 / 3.5;
+  height: auto;
+}
+
+.duel-card-size-arena {
+  width: clamp(7.5rem, 9.6vw, 10.5rem);
+  aspect-ratio: 2.35 / 3.5;
+  height: auto;
+}
+
+.duel-arena-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7rem, 10rem) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(1rem, 3vw, 3rem);
+  width: min(100%, 66rem);
+}
+
+.duel-empty-slot {
+  width: clamp(7.5rem, 9.6vw, 10.5rem);
+  aspect-ratio: 2.35 / 3.5;
+}
+
+.card-from-bottom {
+  animation: card-from-bottom 480ms cubic-bezier(0.2, 0.85, 0.25, 1.18) both;
+}
+
+.card-from-top {
+  animation: card-from-top 480ms cubic-bezier(0.2, 0.85, 0.25, 1.18) both;
+}
+
+.card-reveal {
+  animation: card-reveal 520ms ease both;
+}
+
+.battle-impact {
+  animation: battle-impact 520ms ease both;
+}
+
+.winner-pop {
+  animation: winner-pop 420ms ease both;
+}
+
+@keyframes duel-particles {
+  from {
+    background-position: 0 0, 28px 34px;
+  }
+
+  to {
+    background-position: 78px 78px, 140px 146px;
+  }
+}
+
+@keyframes card-from-bottom {
+  0% {
+    opacity: 0;
+    transform: translateY(70px) scale(0.9) rotateX(12deg);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.04) rotateX(0deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg);
+  }
+}
+
+@keyframes card-from-top {
+  0% {
+    opacity: 0;
+    transform: translateY(-70px) scale(0.9) rotateX(-12deg) rotateY(90deg);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(8px) scale(1.04) rotateX(0deg) rotateY(0deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg) rotateY(0deg);
+  }
+}
+
+@keyframes card-reveal {
+  0% {
+    transform: rotateY(90deg) scale(0.96);
+    filter: brightness(0.75);
+  }
+
+  100% {
+    transform: rotateY(0deg) scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes battle-impact {
+  0%,
+  100% {
+    transform: translateX(0) scale(1);
+    filter: drop-shadow(0 0 0 rgba(245, 158, 11, 0));
+  }
+
+  20% {
+    transform: translateX(-5px) scale(1.06);
+    filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.55));
+  }
+
+  35% {
+    transform: translateX(5px) scale(1.02);
+  }
+
+  50% {
+    transform: translateX(-3px) scale(1.05);
+  }
+}
+
+@keyframes winner-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

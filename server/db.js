@@ -30,21 +30,24 @@ export function isDatabaseConnected() {
 }
 
 async function seedDatabase() {
+  const seedIds = cards.map((card) => card.id);
+
   await Promise.all(
-    cards.map(({ id, collected, ...card }) =>
+    cards.map(({ id, ...card }) =>
       Card.updateOne(
         { gameId: id },
         {
           $set: card,
           $setOnInsert: {
             gameId: id,
-            collected,
           },
         },
         { upsert: true },
       ),
     ),
   );
+
+  await Card.deleteMany({ gameId: { $nin: seedIds } });
 
   await Player.updateOne(
     { username: player.username },

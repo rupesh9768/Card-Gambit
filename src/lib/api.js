@@ -30,3 +30,21 @@ export function startGame(mode) {
     method: 'POST',
   });
 }
+
+export function startDuel(playerDeck) {
+  return request('/api/duel/start', {
+    method: 'POST',
+    body: JSON.stringify({ playerDeck }),
+  });
+}
+
+export function playDuelRound(duelId, selectedCardId) {
+  return request('/api/duel/play', {
+    method: 'POST',
+    body: JSON.stringify({ duelId, selectedCardId }),
+  });
+}
+
+export function getDuelResult(duelId) {
+  return request(`/api/duel/result?duelId=${encodeURIComponent(duelId)}`);
+}

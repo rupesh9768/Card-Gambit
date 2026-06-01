@@ -17,7 +17,7 @@ export default function Home() {
           Arcane Arena
         </p>
         <h1 className="font-display text-5xl font-black leading-tight text-slate-50 sm:text-7xl lg:text-8xl">
-          Battle Card Game
+          Card Gambit
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
           Command legendary champions, forge a deck of monsters and myth, and prepare for turn-based battles in the shadow realm.
