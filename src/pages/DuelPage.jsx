@@ -1,22 +1,38 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Flag, Home, RotateCcw, Swords } from 'lucide-react';
-import BattleCard from '../components/BattleCard.jsx';
+import { Bot, Eye, Flag, Heart, Home, RotateCcw, Shield, Sparkles, Swords, Zap } from 'lucide-react';
 import { getDuelResult, getInventory, playDuelRound, startDuel } from '../lib/api.js';
 
-const deckStorageKey = 'card-gambit-deck';
-const playablePhases = new Set(['idle']);
+const preferredDeckNames = ['Flame Dragon', 'Ice Dragon', 'Dawn Herald', 'Null Wisp', 'Bone Squire'];
+const playablePhases = new Set(['idle', 'selected']);
+const sparks = Array.from({ length: 32 }, (_, index) => ({
+  left: `${(index * 31) % 100}%`,
+  bottom: `${(index * 17) % 92}%`,
+  delay: `${(index % 10) * 0.42}s`,
+  duration: `${5 + (index % 6) * 0.58}s`,
+}));
+const ghosts = [
+  { left: '5%', top: '18%', delay: '0s', rotate: '-14deg' },
+  { left: '21%', top: '68%', delay: '1s', rotate: '8deg' },
+  { left: '78%', top: '14%', delay: '1.7s', rotate: '12deg' },
+  { left: '90%', top: '63%', delay: '0.6s', rotate: '-9deg' },
+];
 
 export default function DuelPage() {
   const [duel, setDuel] = useState(null);
+  const [selectedCardId, setSelectedCardId] = useState(null);
   const [roundResult, setRoundResult] = useState(null);
   const [matchResult, setMatchResult] = useState(null);
-  const [selectedCardId, setSelectedCardId] = useState(null);
   const [battlePhase, setBattlePhase] = useState('idle');
+  const [roundHistory, setRoundHistory] = useState([]);
+  const [timer, setTimer] = useState(30);
+  const [shake, setShake] = useState(false);
+  const [burstKey, setBurstKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const timersRef = useRef([]);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     createDuel();
@@ -24,27 +40,49 @@ export default function DuelPage() {
     return clearBattleTimers;
   }, []);
 
+  useEffect(() => {
+    if (!duel || matchResult || !playablePhases.has(battlePhase)) {
+      return undefined;
+    }
+
+    const interval = setInterval(() => {
+      setTimer((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [battlePhase, duel, matchResult]);
+
+  useEffect(() => {
+    if (duel && !matchResult && battlePhase === 'idle') {
+      setTimer(30);
+    }
+  }, [battlePhase, duel?.round, matchResult]);
+
   const playerCards = duel?.playerDeck ?? [];
   const aiCards = duel?.aiDeck ?? [];
-  const selectedPreviewCard = playerCards.find((card) => card.id === selectedCardId);
-  const canPlay = duel && !loading && !matchResult && playablePhases.has(battlePhase);
-  const scoreLabel = duel ? `${duel.score.player} - ${duel.score.ai}` : '0 - 0';
-  const roundLabel = useMemo(() => `Round ${Math.min(duel?.round ?? 1, 5)} / 5`, [duel]);
+  const selectedCard = playerCards.find((card) => card.id === selectedCardId);
+  const score = duel?.score ?? { player: 0, ai: 0 };
+  const currentRound = Math.min(duel?.round ?? 1, 5);
+  const canSelect = duel && !matchResult && !loading && playablePhases.has(battlePhase);
+  const canClash = Boolean(selectedCard) && canSelect;
 
   async function createDuel() {
     clearBattleTimers();
     setLoading(true);
     setError('');
     setDuel(null);
-    setMatchResult(null);
-    setRoundResult(null);
     setSelectedCardId(null);
+    setRoundResult(null);
+    setMatchResult(null);
     setBattlePhase('idle');
+    setRoundHistory([]);
+    setTimer(30);
+    setShake(false);
 
     try {
       const inventory = await getInventory();
       const ownedCards = inventory.cards.filter((card) => card.collected);
-      const playerDeck = getSavedDeck(ownedCards).slice(0, 5);
+      const playerDeck = buildPreferredDeck(ownedCards);
 
       if (playerDeck.length < 5) {
         setError('You need 5 owned cards in your deck to start a duel.');
@@ -60,26 +98,37 @@ export default function DuelPage() {
     }
   }
 
-  async function handleCardSelect(card) {
-    if (!canPlay || card.used) {
+  function handleCardSelect(card) {
+    if (!canSelect || card.used) {
+      return;
+    }
+
+    setSelectedCardId(card.id);
+    setBattlePhase('selected');
+    playTone('select');
+  }
+
+  async function handleClash() {
+    if (!canClash || loading) {
       return;
     }
 
     clearBattleTimers();
-    setSelectedCardId(card.id);
-    setBattlePhase('playerSelected');
     setLoading(true);
-    playSound('card-select');
+    setBattlePhase('reveal');
+    setRoundResult(null);
+    setBurstKey((key) => key + 1);
+    playTone('clash');
 
     try {
-      const result = await playDuelRound(duel.duelId, card.id);
-      playSound('card-reveal');
-      setRoundResult(result);
-      setBattlePhase('aiReveal');
+      const result = await playDuelRound(duel.duelId, selectedCard.id);
+      const roundNumber = duel.round;
+
+      setRoundResult({ ...result, displayRound: roundNumber });
       setDuel({
         ...duel,
         playerDeck: duel.playerDeck.map((playerCard) =>
-          playerCard.id === card.id ? { ...playerCard, used: true } : playerCard,
+          playerCard.id === selectedCard.id ? { ...playerCard, used: true } : playerCard,
         ),
         aiDeck: duel.aiDeck.map((aiCard) =>
           aiCard.id === result.aiCard.id ? { ...result.aiCard, used: true } : aiCard,
@@ -89,32 +138,38 @@ export default function DuelPage() {
         score: result.score,
         round: result.round,
       });
+      setRoundHistory((history) => [...history, { ...result, round: roundNumber }]);
 
-      queueBattleStep(() => {
-        playSound('card-impact');
+      queueStep(() => {
+        setShake(true);
         setBattlePhase('impact');
-      }, 920);
-      queueBattleStep(() => setBattlePhase('result'), 1500);
+      }, 850);
+      queueStep(() => setShake(false), 1220);
+      queueStep(() => {
+        setBattlePhase('result');
+        if (result.roundWinner === 'player') {
+          playTone('win');
+        }
+      }, 1650);
 
       const finalResult = await getDuelResult(duel.duelId);
 
       if (finalResult.complete) {
-        queueBattleStep(() => {
+        queueStep(() => {
           setMatchResult(finalResult);
           setBattlePhase('result');
-        }, 2400);
+        }, 3050);
       } else {
-        queueBattleStep(() => {
+        queueStep(() => {
           setRoundResult(null);
           setSelectedCardId(null);
           setBattlePhase('idle');
-        }, 3400);
+          setTimer(30);
+        }, 3700);
       }
     } catch {
       setError('Could not play round.');
-      setBattlePhase('idle');
-      setSelectedCardId(null);
-      setRoundResult(null);
+      setBattlePhase('selected');
     } finally {
       setLoading(false);
     }
@@ -127,326 +182,605 @@ export default function DuelPage() {
 
     clearBattleTimers();
     setLoading(false);
-    setRoundResult(null);
-    setSelectedCardId(null);
-    setBattlePhase('result');
+    setShake(false);
     setMatchResult({ complete: true, winner: 'ai', surrendered: true });
+    setBattlePhase('result');
+    playTone('lose');
   }
 
   function clearBattleTimers() {
-    timersRef.current.forEach((timer) => clearTimeout(timer));
+    timersRef.current.forEach((timeout) => clearTimeout(timeout));
     timersRef.current = [];
   }
 
-  function queueBattleStep(callback, delay) {
-    const timer = setTimeout(callback, delay);
-    timersRef.current.push(timer);
+  function queueStep(callback, delay) {
+    const timeout = setTimeout(callback, delay);
+    timersRef.current.push(timeout);
+  }
+
+  function getAudio() {
+    if (!audioRef.current) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioRef.current = AudioContext ? new AudioContext() : null;
+    }
+
+    return audioRef.current;
+  }
+
+  function playTone(type) {
+    const context = getAudio();
+
+    if (!context) {
+      return;
+    }
+
+    context.resume?.();
+
+    if (type === 'win') {
+      [440, 560, 720].forEach((frequency, index) => playOsc(context, frequency, 0.09, index * 0.09, 'triangle'));
+      return;
+    }
+
+    if (type === 'lose') {
+      [220, 175, 130].forEach((frequency, index) => playOsc(context, frequency, 0.1, index * 0.08, 'sawtooth', 0.035));
+      return;
+    }
+
+    if (type === 'clash') {
+      playOsc(context, 96, 0.08, 0, 'sawtooth', 0.08);
+      playOsc(context, 640, 0.05, 0.025, 'square', 0.035);
+      return;
+    }
+
+    playOsc(context, type === 'hover' ? 880 : 520, 0.045, 0, 'sine', 0.02);
   }
 
   return (
-    <main className="duel-screen relative bg-[#03030a] text-slate-50">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(245,158,11,0.12),transparent_18rem),radial-gradient(circle_at_20%_10%,rgba(14,165,233,0.18),transparent_18rem),radial-gradient(circle_at_80%_8%,rgba(168,85,247,0.18),transparent_20rem),linear-gradient(180deg,#020617_0%,#090416_45%,#020617_100%)]" />
-      <motion.div
-        className="absolute inset-0 bg-[linear-gradient(120deg,rgba(14,165,233,0.08),transparent,rgba(168,85,247,0.1))]"
-        animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
-      />
-      <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-amber-300/10 bg-amber-300/[0.03] blur-sm" />
+    <main className={`battle-screen relative text-slate-50 ${shake ? 'battle-shake' : ''}`}>
+      <BattleBackground />
 
-      <div className="relative z-10 flex h-screen flex-col overflow-hidden">
-        <div className="pointer-events-none absolute left-3 right-3 top-3 z-20 flex items-start justify-between gap-3">
+      <div className="relative z-10 flex h-screen flex-col overflow-hidden px-4 py-3">
+        <header className="flex h-[10vh] min-h-[4.5rem] shrink-0 items-center justify-between">
           <motion.button
             type="button"
             onClick={handleSurrender}
             disabled={Boolean(matchResult)}
-            whileHover={!matchResult ? { scale: 1.04 } : undefined}
-            whileTap={!matchResult ? { scale: 0.98 } : undefined}
-            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-rose-300/25 bg-rose-950/35 px-4 py-2.5 text-xs font-black uppercase tracking-[0.16em] text-rose-100 shadow-lg shadow-rose-950/30 backdrop-blur transition hover:border-rose-300/55 hover:bg-rose-500/15 disabled:cursor-default disabled:opacity-45"
+            whileHover={!matchResult ? { x: [-2, 2, -2, 2, 0], scale: 1.04 } : undefined}
+            whileTap={!matchResult ? { scale: 0.97 } : undefined}
+            className="inline-flex items-center gap-2 rounded-full border border-rose-400/45 bg-rose-950/45 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-rose-100 shadow-[0_0_26px_rgba(244,63,94,0.24)] backdrop-blur transition hover:border-rose-300 hover:bg-rose-500/18 disabled:cursor-default disabled:opacity-45"
           >
-            <Flag size={15} />
+            <Flag size={16} />
             Surrender
           </motion.button>
-          <div className="rounded-full border border-amber-300/20 bg-black/40 px-5 py-2 text-center shadow-ember backdrop-blur">
-            <p className="font-display text-2xl font-black leading-none text-amber-100">{scoreLabel}</p>
-            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">{roundLabel}</p>
-          </div>
-        </div>
 
-        <section className="flex h-[24vh] items-center justify-center px-3 pt-10">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4">
+          <ScoreHud score={score} round={currentRound} history={roundHistory} />
+        </header>
+
+        <section className="flex h-[17vh] min-h-[7.4rem] shrink-0 items-center justify-center">
+          <div className="flex items-center justify-center gap-3 md:gap-5">
             {aiCards.map((card, index) => (
-              <motion.div
-                key={`${card.id}-${index}`}
-                initial={{ opacity: 0, y: -18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: index * 0.04 }}
-              >
-                <BattleCard
-                  card={card}
-                  hidden={!card.used}
-                  used={card.used}
-                  variant="opponent"
-                  className={card.used ? 'card-reveal' : ''}
-                />
-              </motion.div>
+              <OpponentBack key={`${card.id}-${index}`} index={index} revealed={card.used} card={card} onHover={() => playTone('hover')} />
             ))}
           </div>
         </section>
 
-        <section className="duel-arena relative grid h-[51vh] place-items-center overflow-hidden border-y border-white/10">
+        <section className="relative grid h-[45vh] min-h-0 place-items-center overflow-hidden rounded-[2rem] border border-white/10 bg-black/10">
+          <div className="battle-hex-grid absolute inset-0" />
+          <div className="battle-energy-beam absolute left-1/2 top-1/2 h-1 w-[30rem] max-w-[52vw] -translate-x-1/2 -translate-y-1/2" />
           <AnimatePresence>
             {battlePhase === 'impact' && (
               <motion.div
-                className="absolute inset-0 z-20 bg-white"
+                key={`flash-${burstKey}`}
+                className="absolute inset-0 z-30 bg-white"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 0.55, 0] }}
+                animate={{ opacity: [0, 0.62, 0] }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.28 }}
+                transition={{ duration: 0.32 }}
               />
             )}
           </AnimatePresence>
-          <div className="absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full border border-amber-300/20 bg-amber-300/[0.04] shadow-ember" />
-          <div className="duel-arena-grid relative z-10 px-3 sm:px-6">
-            <ArenaSlot
-              key={`player-${roundResult?.round ?? 'empty'}-${roundResult?.playerCard?.id ?? selectedCardId ?? 'none'}`}
+          <AnimatePresence>
+            {battlePhase === 'impact' && (
+              <motion.div
+                key={`burst-${burstKey}`}
+                className="battle-burst absolute left-1/2 top-1/2 z-30 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                initial={{ scale: 0.2, opacity: 0 }}
+                animate={{ scale: [0.2, 1.5, 2.2], opacity: [0, 1, 0] }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.7 }}
+              />
+            )}
+          </AnimatePresence>
+
+          <div className="relative z-10 grid w-full max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-5 px-5">
+            <CardZone
+              label="Your Card"
               side="player"
+              card={roundResult?.playerCard ?? selectedCard}
+              rating={roundResult?.playerRating}
               phase={battlePhase}
-              result={roundResult}
-              previewCard={selectedPreviewCard}
+              winner={roundResult?.roundWinner}
+              showDamage={battlePhase === 'result' && roundResult}
             />
-            <RoundCenter phase={battlePhase} result={roundResult} matchResult={matchResult} loading={loading && Boolean(duel)} />
-            <ArenaSlot
-              key={`ai-${roundResult?.round ?? 'empty'}-${roundResult?.aiCard?.id ?? 'none'}`}
-              side="ai"
+
+            <ClashCenter
+              canClash={canClash}
+              selected={Boolean(selectedCard)}
               phase={battlePhase}
+              timer={timer}
               result={roundResult}
+              matchResult={matchResult}
+              onClash={handleClash}
+            />
+
+            <CardZone
+              label="AI Card"
+              side="ai"
+              card={roundResult?.aiCard}
+              rating={roundResult?.aiRating}
+              phase={battlePhase}
+              winner={roundResult?.roundWinner}
+              showDamage={battlePhase === 'result' && roundResult}
             />
           </div>
         </section>
 
-        <section className="flex h-[25vh] items-center justify-center overflow-visible px-2 pb-2">
-          <div className="flex items-end justify-center gap-1.5 sm:gap-3 md:gap-4">
-            {playerCards.map((card, index) => {
-              const offset = index - 2;
-              const isSelected = selectedCardId === card.id;
-              const rotation = offset * 3;
-
-              return (
-                <motion.div
-                  key={card.id}
-                  layout
-                  initial={{ opacity: 0, y: 24, rotate: rotation }}
-                  animate={{
-                    opacity: card.used ? 0.38 : 1,
-                    y: Math.abs(offset) * 3,
-                    rotate: rotation,
-                    scale: 1,
-                  }}
-                  whileHover={
-                    canPlay && !card.used
-                      ? {
-                          y: -15,
-                          scale: 1.08,
-                          rotate: offset * 1.2,
-                          filter: getHoverGlow(card.rarity),
-                          zIndex: 50,
-                        }
-                      : undefined
-                  }
-                  transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-                  style={{
-                    zIndex: isSelected ? 20 : index + 1,
-                    transformOrigin: 'center bottom',
-                  }}
-                >
-                  <BattleCard
-                    card={card}
-                    used={card.used}
-                    selected={isSelected}
-                    onClick={canPlay ? handleCardSelect : undefined}
-                    variant="hand"
-                    className={isSelected && battlePhase !== 'idle' ? 'opacity-25' : ''}
-                  />
-                </motion.div>
-              );
-            })}
+        <section className="flex h-[28vh] min-h-0 shrink-0 items-center justify-center overflow-visible px-2">
+          <div className="flex items-end justify-center gap-3 md:gap-5">
+            {playerCards.map((card, index) => (
+              <HandCard
+                key={card.id}
+                card={card}
+                index={index}
+                selected={selectedCardId === card.id}
+                disabled={!canSelect || card.used}
+                onClick={() => handleCardSelect(card)}
+                onHover={() => playTone('hover')}
+              />
+            ))}
           </div>
         </section>
       </div>
 
-      {(loading && !duel) || error || matchResult ? (
-        <StatusOverlay
-          loading={loading && !duel}
-          error={error}
-          matchResult={matchResult}
-          onRestart={createDuel}
-        />
-      ) : null}
+      <AnimatePresence>
+        {((loading && !duel) || error || matchResult) && (
+          <EndOverlay
+            loading={loading && !duel}
+            error={error}
+            matchResult={matchResult}
+            history={roundHistory}
+            onRestart={createDuel}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
 
-function ArenaSlot({ side, phase, result, previewCard }) {
-  const previewOnly = side === 'player' && !result && previewCard && phase === 'playerSelected';
-
-  if (!result && !previewOnly) {
-    return (
-      <div className="duel-empty-slot mx-auto grid place-items-center rounded-[1.2rem] border border-white/10 bg-black/15 text-center shadow-inner shadow-black/30">
-        <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-500">
-          {side === 'player' ? 'Your card' : 'AI card'}
-        </p>
-      </div>
-    );
-  }
-
-  const card = previewOnly ? previewCard : side === 'player' ? result.playerCard : result.aiCard;
-  const rating = previewOnly ? null : side === 'player' ? result.playerRating : result.aiRating;
-  const opposingRating = previewOnly ? null : side === 'player' ? result.aiRating : result.playerRating;
-  const hasHigherRating = rating !== null && rating > opposingRating;
-  const won = !previewOnly && result.roundWinner === side;
-  const showRating = !previewOnly && ['impact', 'result'].includes(phase);
-  const isAi = side === 'ai';
-
+function BattleBackground() {
   return (
-      <motion.div
-      className="mx-auto grid place-items-center gap-2"
-      initial={{
-        opacity: 0,
-        y: side === 'player' ? 190 : -165,
-        scale: 0.78,
-        rotate: side === 'player' ? -3 : 3,
-        rotateY: isAi ? 180 : 0,
-      }}
-      animate={
-        phase === 'impact'
-          ? {
-              opacity: 1,
-              y: 0,
-              scale: [1, 1.24, 1],
-              rotate: 0,
-              rotateY: 0,
-              x: side === 'player' ? [0, 16, -9, 7, 0] : [0, -16, 9, -7, 0],
-            }
-          : { opacity: 1, y: 0, scale: previewOnly ? 1.12 : 1, rotate: 0, rotateY: 0, x: 0 }
-      }
-      exit={{ opacity: 0, y: side === 'player' ? 80 : -80, scale: 0.85 }}
-      transition={{ duration: isAi ? 1 : 0.9, delay: isAi ? 0.35 : 0, ease: [0.22, 1, 0.36, 1] }}
-      style={{ transformStyle: 'preserve-3d' }}
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(245,197,24,0.18),transparent_20rem),radial-gradient(circle_at_25%_28%,rgba(124,58,237,0.3),transparent_24rem),radial-gradient(circle_at_76%_24%,rgba(6,182,212,0.2),transparent_22rem),linear-gradient(135deg,#0a0b1a_0%,#130826_48%,#061525_100%)]" />
+      <div className="battle-aurora absolute inset-0" />
+      <div className="absolute left-1/2 top-[47%] h-[30rem] w-[30rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#f5c518]/15 bg-[#f5c518]/[0.04] blur-sm" />
+      {ghosts.map((ghost, index) => (
+        <span
+          key={index}
+          className="lobby-card-ghost"
+          style={{ left: ghost.left, top: ghost.top, animationDelay: ghost.delay, rotate: ghost.rotate }}
+        />
+      ))}
+      {sparks.map((spark, index) => (
+        <span
+          key={index}
+          className="lobby-spark"
+          style={{ left: spark.left, bottom: spark.bottom, animationDelay: spark.delay, animationDuration: spark.duration }}
+        />
+      ))}
+      <div className="battle-mist absolute inset-x-0 bottom-0 h-36" />
+    </div>
+  );
+}
+
+function ScoreHud({ score, round, history }) {
+  return (
+    <motion.div
+      className="rounded-full border border-[#f5c518]/25 bg-black/35 px-4 py-2 shadow-ember backdrop-blur-xl"
+      animate={{ scale: [1, 1.03, 1] }}
+      transition={{ duration: 0.35 }}
     >
-      <BattleCard card={card} selected={won || previewOnly} variant="arena" />
-      <AnimatePresence>
-        {showRating && (
-          <motion.div
-            className={`rounded-full border px-4 py-1.5 text-xs font-black uppercase tracking-[0.16em] ${
-              hasHigherRating
-                ? side === 'player'
-                  ? 'border-emerald-300/60 bg-emerald-400/15 text-emerald-100 shadow-[0_0_24px_rgba(52,211,153,0.32)]'
-                  : 'border-rose-300/60 bg-rose-400/15 text-rose-100 shadow-[0_0_24px_rgba(251,113,133,0.32)]'
-                : 'border-white/10 bg-white/[0.06] text-slate-300'
-            }`}
-            initial={{ opacity: 0, scale: 0.8, y: -6 }}
-            animate={{ opacity: 1, scale: [0.8, 1.2, 1], y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 8 }}
-            transition={{ duration: 0.38 }}
-          >
-            Rating {rating}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="flex items-center gap-4">
+        <ScoreBubble label="YOU" value={score.player} tone="text-cyan-100" />
+        <div className="text-center">
+          <p className="font-display text-lg font-black text-[#f5c518]">ROUND {round} / 5</p>
+          <div className="mt-1 flex justify-center gap-1.5">
+            {Array.from({ length: 5 }, (_, index) => {
+              const played = index < history.length;
+              const active = index === Math.min(round - 1, 4);
+              return (
+                <span
+                  key={index}
+                  className={`h-2 w-2 rounded-full ${
+                    played ? 'bg-cyan-300 shadow-frost' : active ? 'bg-[#f5c518] shadow-ember animate-pulse' : 'bg-white/18'
+                  }`}
+                />
+              );
+            })}
+          </div>
+        </div>
+        <ScoreBubble label="AI" value={score.ai} tone="text-rose-100" />
+      </div>
     </motion.div>
   );
 }
 
-function RoundCenter({ phase, result, matchResult, loading }) {
-  const winnerKey = matchResult?.winner ?? result?.roundWinner;
-  const winner = getWinnerLabel(winnerKey);
-  const showWinner = phase === 'result' && Boolean(winnerKey);
+function ScoreBubble({ label, value, tone }) {
+  return (
+    <div className="grid h-12 w-12 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-center">
+      <span className={`font-display text-xl font-black leading-none ${tone}`}>{value}</span>
+      <span className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</span>
+    </div>
+  );
+}
+
+function OpponentBack({ index, revealed, card, onHover }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -34, rotate: 0 }}
+      animate={{ opacity: 1, y: [0, -6, 0], rotate: 0 }}
+      transition={{ opacity: { duration: 0.35, delay: index * 0.08 }, y: { duration: 3.2, repeat: Infinity, delay: index * 0.2 } }}
+      whileHover={{ y: -14, scale: 1.06, filter: 'drop-shadow(0 0 18px rgba(245,197,24,0.45))' }}
+      onHoverStart={onHover}
+      className="battle-opponent-card relative grid place-items-center overflow-hidden rounded-2xl border border-violet-300/45 bg-purple-950/55 shadow-[0_0_26px_rgba(124,58,237,0.34)]"
+    >
+      {revealed ? (
+        <motion.div initial={{ rotateY: 180 }} animate={{ rotateY: 0 }} transition={{ duration: 0.65 }} className="h-full w-full">
+          <MiniCardFace card={card} compact />
+        </motion.div>
+      ) : (
+        <div className="battle-card-back-face grid h-full w-full place-items-center">
+          <div className="grid h-12 w-12 place-items-center rounded-full border border-[#f5c518]/30 bg-black/35 text-[#f5c518] shadow-ember">
+            <Eye size={24} />
+          </div>
+          <p className="absolute bottom-4 text-[9px] font-black uppercase tracking-[0.28em] text-violet-100/70">Hidden</p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function CardZone({ label, side, card, rating, phase, winner, showDamage }) {
+  const isWinner = winner === side;
+  const isLoser = winner && winner !== side && winner !== 'draw';
+  const active = Boolean(card);
 
   return (
-    <div className="relative z-10 grid min-w-[7rem] place-items-center text-center sm:min-w-40">
-      <motion.div
-        className="grid min-h-36 w-full place-items-center rounded-3xl border border-white/10 bg-black/30 px-4 py-4 shadow-2xl shadow-black/30 backdrop-blur"
-        animate={phase === 'impact' ? { scale: [1, 1.06, 1] } : { scale: 1 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="grid h-14 w-14 place-items-center rounded-full border border-amber-300/25 bg-black/45 shadow-ember">
-          <Swords className="text-amber-100" size={25} />
-        </div>
-        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
-          {getPhaseLabel(phase, loading)}
-        </p>
+    <div className="grid justify-items-center gap-3">
+      <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-100/70">{label}</p>
+      <div className="battle-zone relative grid place-items-center overflow-visible rounded-[1.6rem] border border-[#f5c518]/28 bg-black/25 shadow-2xl shadow-black/40">
+        {!active && <div className="battle-rune-circle absolute h-28 w-28 rounded-full border border-dashed border-[#f5c518]/38" />}
+        {!active && <p className="font-display text-xl font-black text-[#f5c518] lobby-title-glow">Choose Card</p>}
         <AnimatePresence mode="wait">
-          {showWinner ? (
-            <motion.p
-              key={winner}
-              className={`mt-2 font-display text-2xl font-black ${getWinnerClass(winnerKey)}`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: [0.8, 1.1, 1] }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.34 }}
+          {active && (
+            <motion.div
+              key={`${side}-${card.id}-${phase}`}
+              initial={{ opacity: 0, x: side === 'player' ? -160 : 160, y: side === 'player' ? 130 : -105, scale: 0.82, rotateY: side === 'ai' ? 180 : 0 }}
+              animate={
+                phase === 'impact'
+                  ? { opacity: 1, x: [0, side === 'player' ? 34 : -34, 0], y: 0, scale: [1, 1.28, 1], rotateY: 0 }
+                  : phase === 'result'
+                    ? { opacity: isLoser ? 0.55 : 1, x: 0, y: isWinner ? -10 : 10, scale: isWinner ? [1, 1.08, 1.02] : 0.94, rotateY: 0 }
+                    : { opacity: 1, x: 0, y: 0, scale: 1, rotateY: 0 }
+              }
+              exit={{ opacity: 0, y: side === 'player' ? 90 : -90, scale: 0.8 }}
+              transition={{ duration: 0.82, ease: [0.22, 1, 0.36, 1] }}
+              className="relative"
             >
-              {winner}
-            </motion.p>
-          ) : (
-            <motion.p
-              key="prompt"
-              className="mt-2 font-display text-xl font-black text-amber-100"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              {phase === 'idle' ? 'Choose Card' : 'Ready'}
-            </motion.p>
+              <PremiumCard card={card} selected={isWinner} dimmed={isLoser} arena />
+              {isLoser && <div className="battle-crack pointer-events-none absolute inset-0 rounded-2xl" />}
+              <AnimatePresence>
+                {showDamage && (
+                  <motion.div
+                    className={`absolute -top-10 left-1/2 -translate-x-1/2 rounded-full border px-3 py-1 text-sm font-black ${
+                      isWinner ? 'border-emerald-300/50 bg-emerald-400/15 text-emerald-100' : 'border-rose-300/50 bg-rose-400/15 text-rose-100'
+                    }`}
+                    initial={{ opacity: 0, y: 8, scale: 0.8 }}
+                    animate={{ opacity: 1, y: -10, scale: [0.8, 1.2, 1] }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {isWinner ? '+Score' : '-Round'}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           )}
         </AnimatePresence>
-        {matchResult && (
-          <p className="mt-2 rounded-full border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100 sm:text-xs">
-            {getMatchLabel(matchResult)}
-          </p>
+      </div>
+      <AnimatePresence>
+        {rating !== undefined && ['impact', 'result'].includes(phase) && (
+          <motion.p
+            className={`rounded-full border px-4 py-1.5 text-xs font-black uppercase tracking-[0.16em] ${
+              isWinner ? 'border-[#f5c518]/55 bg-[#f5c518]/15 text-[#f5c518] shadow-ember' : 'border-white/10 bg-white/[0.06] text-slate-200'
+            }`}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: [0.8, 1.18, 1] }}
+          >
+            Rating {rating}
+          </motion.p>
         )}
-      </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
 
-function StatusOverlay({ loading, error, matchResult, onRestart }) {
-  const title = loading ? 'Starting Duel' : error || getMatchLabel(matchResult);
+function ClashCenter({ canClash, selected, phase, timer, result, matchResult, onClash }) {
+  const showTimer = playablePhases.has(phase);
+  const countdown = Math.max(0, Math.min(30, timer));
+  const degrees = showTimer ? (countdown / 30) * 360 : 360;
+  const underTen = showTimer && countdown <= 10;
+  const winnerKey = matchResult?.winner ?? result?.roundWinner;
+  const centerText = winnerKey ? getWinnerText(winnerKey) : selected ? 'Ready to Clash' : 'Choose Card';
 
   return (
-    <div className="absolute inset-0 z-30 grid place-items-center bg-black/55 px-4 backdrop-blur-sm">
-      <motion.div
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-950/90 p-6 text-center shadow-2xl shadow-black/60"
-        initial={{ opacity: 0, scale: 0.94 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.25 }}
+    <div className="grid min-w-[10rem] place-items-center gap-3 text-center">
+      <motion.button
+        type="button"
+        onClick={onClash}
+        disabled={!canClash}
+        initial={{ opacity: 0, rotate: -35, scale: 0.82 }}
+        animate={{ opacity: 1, rotate: 0, scale: 1 }}
+        whileHover={canClash ? { scale: 1.08 } : undefined}
+        whileTap={canClash ? { scale: 0.96 } : undefined}
+        className="battle-clash-button relative grid h-24 w-24 place-items-center rounded-full border border-[#f5c518]/55 bg-black/48 text-[#f5c518] shadow-ember disabled:cursor-not-allowed disabled:opacity-55"
+        style={{
+          background: `conic-gradient(${underTen ? '#fb7185' : '#f5c518'} ${degrees}deg, rgba(255,255,255,0.08) ${degrees}deg), rgba(0,0,0,0.55)`,
+        }}
       >
-        <p className="font-display text-3xl font-black text-amber-100">{title}</p>
-        {loading && <p className="mt-2 text-sm text-slate-400">Shuffling the arena...</p>}
-        {matchResult && (
-          <button
-            type="button"
-            onClick={onRestart}
-            className="mt-5 inline-flex items-center gap-2 rounded-full border border-amber-300/25 bg-amber-400/10 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-amber-100 transition hover:border-amber-300/60 hover:shadow-ember"
-          >
-            <RotateCcw size={16} />
-            Rematch
-          </button>
-        )}
-        {matchResult && (
-          <Link
-            to="/dashboard"
-            className="ml-3 mt-5 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/60 hover:shadow-frost"
-          >
-            <Home size={16} />
-            Home
-          </Link>
-        )}
-      </motion.div>
+        <span className="grid h-16 w-16 place-items-center rounded-full bg-black/70">
+          <Swords size={31} />
+        </span>
+      </motion.button>
+      <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">{phase === 'impact' ? 'Impact' : 'Clash'}</p>
+      <p className={`lobby-title-glow font-display text-2xl font-black ${winnerKey === 'ai' ? 'text-rose-300' : winnerKey === 'player' ? 'text-[#f5c518]' : 'text-[#f5c518]'}`}>
+        {centerText}
+      </p>
+      <p className={`rounded-full border px-3 py-1 text-xs font-black ${underTen ? 'border-rose-300/40 text-rose-200 animate-pulse' : 'border-white/10 text-cyan-100/80'}`}>
+        {showTimer ? `${countdown}s` : '...'}
+      </p>
+      <Zap className="battle-lightning text-cyan-200" size={28} />
     </div>
   );
 }
 
-function getWinnerLabel(winner) {
+function HandCard({ card, index, selected, disabled, onClick, onHover }) {
+  const rotation = (index - 2) * 2;
+
+  return (
+    <motion.div
+      className="group relative"
+      initial={{ opacity: 0, y: 70, rotate: rotation }}
+      animate={{ opacity: card.used ? 0.35 : 1, y: Math.abs(index - 2) * 2, rotate: rotation, scale: selected ? 1.08 : 1 }}
+      transition={{ duration: 0.45, delay: 0.12 + index * 0.1, type: 'spring', stiffness: 220, damping: 22 }}
+      whileHover={!disabled ? { y: -20, scale: 1.08, rotateX: 8, filter: getCardGlow(card.rarity) } : undefined}
+      style={{ transformPerspective: 900, zIndex: selected ? 50 : index + 1 }}
+      onHoverStart={!disabled ? onHover : undefined}
+    >
+      <PremiumCard card={card} selected={selected} disabled={disabled} onClick={onClick} />
+      {!disabled && <CardTooltip card={card} />}
+    </motion.div>
+  );
+}
+
+function PremiumCard({ card, selected = false, disabled = false, dimmed = false, onClick, arena = false }) {
+  const rarity = getRarityStyle(card.rarity);
+
+  return (
+    <button
+      type="button"
+      disabled={disabled || !onClick}
+      onClick={onClick}
+      className={`premium-card group relative overflow-hidden rounded-2xl border bg-slate-950/88 p-2 text-left shadow-2xl transition ${
+        arena ? 'w-[clamp(8rem,10vw,10.8rem)]' : 'w-[clamp(5.4rem,8.2vw,8.9rem)]'
+      } ${rarity.border} ${selected ? 'scale-[1.02] border-[#f5c518] shadow-ember' : rarity.shadow} ${dimmed ? 'opacity-70 grayscale' : ''}`}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-white/12 via-transparent to-black/35" />
+      <div className={`relative h-[58%] overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-slate-900 to-violet-950`}>
+        {card.imageUrl ? (
+          <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top transition group-hover:scale-105" />
+        ) : (
+          <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_50%_35%,rgba(124,58,237,0.45),transparent_55%)]">
+            <span className="font-display text-5xl font-black text-slate-400">{card.name.charAt(0)}</span>
+          </div>
+        )}
+        <span className={`absolute right-2 top-2 rounded-full border px-2 py-0.5 text-[8px] font-black uppercase ${rarity.pill}`}>
+          {card.rarity}
+        </span>
+      </div>
+      <div className="relative mt-2 min-h-[2rem]">
+        <h3 className="duel-card-name font-display text-[11px] font-black leading-tight text-white sm:text-sm">{card.name}</h3>
+      </div>
+      <div className="relative mt-1 grid grid-cols-3 gap-1">
+        <Stat icon={Swords} label="ATK" value={card.attack} />
+        <Stat icon={Shield} label="DEF" value={card.defense} />
+        <Stat icon={Heart} label="HP" value={card.health} />
+      </div>
+    </button>
+  );
+}
+
+function MiniCardFace({ card }) {
+  return (
+    <div className="grid h-full w-full grid-rows-[1fr_auto] gap-1 p-2">
+      <div className="overflow-hidden rounded-xl border border-white/10 bg-violet-950">
+        {card.imageUrl ? (
+          <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top" />
+        ) : (
+          <div className="grid h-full place-items-center">
+            <span className="font-display text-4xl font-black text-slate-400">{card.name.charAt(0)}</span>
+          </div>
+        )}
+      </div>
+      <p className="truncate font-display text-xs font-black text-white">{card.name}</p>
+    </div>
+  );
+}
+
+function Stat({ icon: Icon, label, value }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.055] px-1 py-1 text-center">
+      <Icon className="mx-auto text-cyan-100/80" size={11} />
+      <p className="text-[7px] font-black uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="text-[11px] font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function CardTooltip({ card }) {
+  return (
+    <motion.div
+      className="pointer-events-none absolute bottom-[105%] left-1/2 z-[80] w-56 -translate-x-1/2 rounded-2xl border border-[#f5c518]/35 bg-slate-950/92 p-3 text-left opacity-0 shadow-ember backdrop-blur-xl group-hover:opacity-100"
+      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+      whileHover={{ opacity: 1, y: 0, scale: 1 }}
+    >
+      <p className="font-display text-lg font-black text-[#f5c518]">{card.name}</p>
+      <p className="mt-1 text-xs text-slate-300">{getLore(card)}</p>
+      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">
+        ATK {card.attack} / DEF {card.defense} / HP {card.health}
+      </p>
+    </motion.div>
+  );
+}
+
+function EndOverlay({ loading, error, matchResult, history, onRestart }) {
+  const won = matchResult?.winner === 'player';
+  const title = loading ? 'Starting Duel' : error || (won ? 'VICTORY' : 'DEFEATED');
+
+  return (
+    <motion.div
+      className="absolute inset-0 z-50 grid place-items-center bg-black/66 px-4 backdrop-blur-md"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {!loading && !error && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          {Array.from({ length: 28 }, (_, index) => (
+            <span
+              key={index}
+              className={won ? 'victory-spark' : 'ash-spark'}
+              style={{ left: `${(index * 29) % 100}%`, animationDelay: `${(index % 8) * 0.25}s` }}
+            />
+          ))}
+        </div>
+      )}
+      <motion.div
+        className="lobby-glass relative w-full max-w-2xl rounded-[2rem] p-7 text-center"
+        initial={{ opacity: 0, scale: 0.9, y: 18 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+      >
+        <p className={`font-display text-6xl font-black ${won ? 'text-[#f5c518]' : 'text-rose-300'} lobby-title-glow`}>
+          {title}
+        </p>
+        {loading && <p className="mt-3 text-slate-300">Opening the arena...</p>}
+        {matchResult && (
+          <>
+            <p className="mt-3 text-sm font-black uppercase tracking-[0.2em] text-slate-300">
+              Final Score {history.at(-1)?.score?.player ?? 0} - {history.at(-1)?.score?.ai ?? 0}
+            </p>
+            <div className="mt-5 grid gap-2">
+              {history.map((round) => (
+                <div key={round.round} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.045] px-4 py-2 text-sm">
+                  <span className="font-black text-slate-400">Round {round.round}</span>
+                  <span className="font-display font-black text-white">{round.playerCard.name}</span>
+                  <span className="text-[#f5c518]">{round.playerRating} vs {round.aiRating}</span>
+                  <span className="font-black uppercase text-cyan-100">{round.roundWinner}</span>
+                </div>
+              ))}
+              {matchResult.surrendered && <p className="rounded-xl border border-rose-300/20 bg-rose-500/10 px-4 py-2 text-sm font-black text-rose-100">Surrendered</p>}
+            </div>
+            <div className="mt-6 flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={onRestart}
+                className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/35 bg-[#f5c518]/12 px-6 py-3 text-xs font-black uppercase tracking-[0.18em] text-[#f5c518] transition hover:shadow-ember"
+              >
+                <RotateCcw size={16} />
+                Play Again
+              </button>
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center gap-2 rounded-full border border-cyan-300/35 bg-cyan-400/10 px-6 py-3 text-xs font-black uppercase tracking-[0.18em] text-cyan-100 transition hover:shadow-frost"
+              >
+                <Home size={16} />
+                Back to Lobby
+              </Link>
+            </div>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function buildPreferredDeck(ownedCards) {
+  const preferred = preferredDeckNames.map((name) => ownedCards.find((card) => card.name === name)).filter(Boolean);
+  const fillers = ownedCards.filter((card) => !preferred.some((preferredCard) => preferredCard.id === card.id));
+  return [...preferred, ...fillers].slice(0, 5);
+}
+
+function playOsc(context, frequency, duration, delay = 0, type = 'sine', gainValue = 0.028) {
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  const start = context.currentTime + delay;
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(start);
+  oscillator.stop(start + duration + 0.02);
+}
+
+function getRarityStyle(rarity) {
+  if (rarity === 'Epic') {
+    return {
+      border: 'border-[#f5c518]/80',
+      shadow: 'shadow-[0_0_28px_rgba(245,197,24,0.34)]',
+      pill: 'border-[#f5c518]/45 bg-[#f5c518]/16 text-[#f5c518]',
+    };
+  }
+
+  if (rarity === 'Rare') {
+    return {
+      border: 'border-violet-300/70',
+      shadow: 'shadow-[0_0_26px_rgba(124,58,237,0.36)]',
+      pill: 'border-violet-300/45 bg-violet-400/16 text-violet-100',
+    };
+  }
+
+  return {
+    border: 'border-slate-300/45',
+    shadow: 'shadow-[0_0_22px_rgba(148,163,184,0.22)]',
+    pill: 'border-slate-300/35 bg-slate-300/12 text-slate-100',
+  };
+}
+
+function getCardGlow(rarity) {
+  if (rarity === 'Epic') {
+    return 'drop-shadow(0 0 24px rgba(245,197,24,0.55))';
+  }
+
+  if (rarity === 'Rare') {
+    return 'drop-shadow(0 0 22px rgba(124,58,237,0.55))';
+  }
+
+  return 'drop-shadow(0 0 18px rgba(148,163,184,0.42))';
+}
+
+function getWinnerText(winner) {
   if (winner === 'player') {
     return 'YOU WIN';
   }
@@ -459,87 +793,17 @@ function getWinnerLabel(winner) {
     return 'DRAW';
   }
 
-  return 'CHOOSE CARD';
+  return 'Choose Card';
 }
 
-function getWinnerClass(winner) {
-  if (winner === 'player') {
-    return 'text-emerald-300 drop-shadow-[0_0_16px_rgba(52,211,153,0.45)]';
-  }
-
-  if (winner === 'ai') {
-    return 'text-rose-300 drop-shadow-[0_0_16px_rgba(251,113,133,0.45)]';
-  }
-
-  return 'text-amber-100';
-}
-
-function getMatchLabel(matchResult) {
-  if (matchResult?.surrendered) {
-    return 'Surrendered';
-  }
-
-  if (matchResult?.winner === 'player') {
-    return 'Match Won';
-  }
-
-  if (matchResult?.winner === 'ai') {
-    return 'Match Lost';
-  }
-
-  return 'Match Draw';
-}
-
-function getPhaseLabel(phase, loading) {
-  if (loading) {
-    return 'Resolving';
-  }
-
-  if (phase === 'playerSelected') {
-    return 'Card Played';
-  }
-
-  if (phase === 'aiReveal') {
-    return 'Reveal';
-  }
-
-  if (phase === 'impact') {
-    return 'Impact';
-  }
-
-  if (phase === 'result') {
-    return 'Result';
-  }
-
-  return 'Clash';
-}
-
-function getHoverGlow(rarity) {
-  const glows = {
-    Common: 'drop-shadow(0 0 12px rgba(148, 163, 184, 0.35))',
-    Rare: 'drop-shadow(0 0 16px rgba(56, 189, 248, 0.5))',
-    Epic: 'drop-shadow(0 0 18px rgba(168, 85, 247, 0.55))',
-    Legendary: 'drop-shadow(0 0 20px rgba(245, 158, 11, 0.62))',
-    Unknown: 'drop-shadow(0 0 20px rgba(217, 70, 239, 0.62))',
+function getLore(card) {
+  const lore = {
+    'Flame Dragon': 'A volcanic dragon whose wings leave burning sigils in the night sky.',
+    'Ice Dragon': 'A glacial wyrm that freezes the battlefield before striking.',
+    'Dawn Herald': 'A radiant envoy carrying the first light of a forgotten god.',
+    'Null Wisp': 'A silent entity that slips between worlds and phases through attacks.',
+    'Bone Squire': 'A loyal undead guard bound to an ancient battlefield oath.',
   };
 
-  return glows[rarity] ?? glows.Unknown;
-}
-
-function playSound(_eventName) {
-  // Placeholder for future card sounds.
-}
-
-function getSavedDeck(ownedCards) {
-  try {
-    const savedIds = JSON.parse(localStorage.getItem(deckStorageKey) ?? '[]');
-    const savedCards = savedIds
-      .map((id) => ownedCards.find((card) => card.id === id))
-      .filter(Boolean);
-    const fillerCards = ownedCards.filter((card) => !savedIds.includes(card.id));
-
-    return [...savedCards, ...fillerCards];
-  } catch {
-    return ownedCards;
-  }
+  return lore[card.name] ?? `${card.race} card with ${card.ability}.`;
 }

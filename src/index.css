@@ -233,6 +233,175 @@ a {
   animation: portrait-pulse 2.8s ease-in-out infinite;
 }
 
+.battle-screen {
+  height: 100vh;
+  overflow: hidden;
+  background: #0a0b1a;
+  perspective: 1200px;
+}
+
+.battle-aurora {
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(6, 182, 212, 0.12) 35%, transparent 56%),
+    linear-gradient(65deg, transparent 16%, rgba(245, 197, 24, 0.1) 50%, transparent 78%);
+  background-size: 230% 230%;
+  animation: lobby-aurora 11s ease-in-out infinite;
+}
+
+.battle-hex-grid {
+  opacity: 0.05;
+  background-image:
+    linear-gradient(30deg, rgba(255, 255, 255, 0.7) 12%, transparent 12.5%, transparent 87%, rgba(255, 255, 255, 0.7) 87.5%, rgba(255, 255, 255, 0.7)),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.7) 12%, transparent 12.5%, transparent 87%, rgba(255, 255, 255, 0.7) 87.5%, rgba(255, 255, 255, 0.7)),
+    linear-gradient(30deg, rgba(255, 255, 255, 0.7) 12%, transparent 12.5%, transparent 87%, rgba(255, 255, 255, 0.7) 87.5%, rgba(255, 255, 255, 0.7)),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.7) 12%, transparent 12.5%, transparent 87%, rgba(255, 255, 255, 0.7) 87.5%, rgba(255, 255, 255, 0.7));
+  background-position: 0 0, 0 0, 34px 60px, 34px 60px;
+  background-size: 68px 120px;
+}
+
+.battle-mist {
+  background:
+    radial-gradient(ellipse at 20% 100%, rgba(124, 58, 237, 0.2), transparent 55%),
+    radial-gradient(ellipse at 72% 100%, rgba(6, 182, 212, 0.16), transparent 55%),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.08), transparent);
+  filter: blur(13px);
+  animation: battle-mist 9s ease-in-out infinite;
+}
+
+.battle-opponent-card {
+  width: clamp(4.8rem, 6vw, 6.25rem);
+  aspect-ratio: 2.35 / 3.5;
+}
+
+.battle-opponent-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.battle-opponent-card::before {
+  position: absolute;
+  inset: -1px;
+  content: '';
+  border-radius: inherit;
+  background: linear-gradient(110deg, transparent 20%, rgba(245, 197, 24, 0.52), rgba(124, 58, 237, 0.36), transparent 72%);
+  opacity: 0.8;
+  animation: card-border-shimmer 2.6s linear infinite;
+}
+
+.battle-card-back-face {
+  position: relative;
+  z-index: 1;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(245, 197, 24, 0.16), transparent 30%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 10px),
+    linear-gradient(145deg, #110c2d, #24085a 58%, #050715);
+}
+
+.battle-card-back-face::before {
+  position: absolute;
+  inset: 1rem;
+  content: '';
+  border: 1px solid rgba(245, 197, 24, 0.18);
+  border-radius: 999px;
+  box-shadow: inset 0 0 24px rgba(245, 197, 24, 0.08), 0 0 18px rgba(124, 58, 237, 0.18);
+}
+
+.battle-zone {
+  width: clamp(10rem, 15vw, 13.5rem);
+  height: clamp(14rem, 34vh, 18.8rem);
+}
+
+.battle-zone::before {
+  position: absolute;
+  inset: 0.8rem;
+  content: '';
+  border-radius: 1.2rem;
+  background: linear-gradient(110deg, transparent, rgba(245, 197, 24, 0.12), transparent);
+  animation: zone-shimmer 3s ease-in-out infinite;
+}
+
+.battle-rune-circle {
+  animation: rune-spin 7s linear infinite;
+}
+
+.battle-energy-beam {
+  background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.1), rgba(245, 197, 24, 0.9), rgba(6, 182, 212, 0.1), transparent);
+  box-shadow: 0 0 24px rgba(245, 197, 24, 0.42), 0 0 36px rgba(6, 182, 212, 0.25);
+  animation: energy-pulse 1.9s ease-in-out infinite;
+}
+
+.battle-lightning {
+  animation: lightning-flicker 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.8));
+}
+
+.battle-clash-button::before {
+  position: absolute;
+  inset: -0.7rem;
+  content: '';
+  border: 1px solid rgba(245, 197, 24, 0.34);
+  border-radius: 999px;
+  animation: clash-ring 1.8s ease-in-out infinite;
+}
+
+.battle-burst {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(245, 197, 24, 0.5) 34%, transparent 68%),
+    conic-gradient(from 45deg, transparent, rgba(6, 182, 212, 0.75), transparent, rgba(245, 197, 24, 0.75), transparent);
+  filter: blur(1px);
+}
+
+.battle-shake {
+  animation: battle-screen-shake 0.35s linear;
+}
+
+.premium-card {
+  aspect-ratio: 2.35 / 3.5;
+}
+
+.premium-card::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  opacity: 0;
+  transform: translateX(-120%);
+  transition: transform 0.6s ease, opacity 0.2s ease;
+}
+
+.premium-card:hover::before {
+  opacity: 1;
+  transform: translateX(120%);
+}
+
+.battle-crack {
+  background:
+    linear-gradient(118deg, transparent 0 47%, rgba(255, 255, 255, 0.72) 48%, transparent 50%),
+    linear-gradient(54deg, transparent 0 58%, rgba(244, 63, 94, 0.66) 59%, transparent 61%);
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
+.victory-spark,
+.ash-spark {
+  position: absolute;
+  top: -1rem;
+  width: 4px;
+  height: 12px;
+  border-radius: 999px;
+  animation: result-rain 3.2s linear infinite;
+}
+
+.victory-spark {
+  background: #f5c518;
+  box-shadow: 0 0 14px rgba(245, 197, 24, 0.75);
+}
+
+.ash-spark {
+  background: rgba(148, 163, 184, 0.55);
+  box-shadow: 0 0 14px rgba(15, 23, 42, 0.75);
+}
+
 .battle-card-panel::after {
   position: absolute;
   inset: 0;
@@ -292,6 +461,126 @@ a {
 
   50% {
     box-shadow: 0 0 44px rgba(245, 197, 24, 0.58);
+  }
+}
+
+@keyframes battle-mist {
+  0%,
+  100% {
+    transform: translateX(-2%);
+    opacity: 0.62;
+  }
+
+  50% {
+    transform: translateX(2%);
+    opacity: 0.9;
+  }
+}
+
+@keyframes card-border-shimmer {
+  0% {
+    transform: translateX(-80%) rotate(0deg);
+  }
+
+  100% {
+    transform: translateX(80%) rotate(0deg);
+  }
+}
+
+@keyframes zone-shimmer {
+  0%,
+  100% {
+    opacity: 0.18;
+    transform: translateX(-6%);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: translateX(6%);
+  }
+}
+
+@keyframes rune-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes energy-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translate(-50%, -50%) scaleX(0.88);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scaleX(1);
+  }
+}
+
+@keyframes lightning-flicker {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1.16) rotate(-6deg);
+  }
+}
+
+@keyframes clash-ring {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes battle-screen-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-10px);
+  }
+
+  40% {
+    transform: translateX(10px);
+  }
+
+  60% {
+    transform: translateX(-6px);
+  }
+
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes result-rain {
+  0% {
+    opacity: 0;
+    transform: translateY(-1rem) rotate(0deg);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(110vh) rotate(360deg);
   }
 }
 
