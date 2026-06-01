@@ -28,17 +28,17 @@ export default function Collection() {
 
   return (
     <PageShell showBack>
-      <section className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <section className="lobby-glass mb-6 flex flex-col justify-between gap-4 overflow-hidden rounded-3xl p-5 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.24em] text-violet-200">Player Inventory</p>
-          <h1 className="mt-2 font-display text-4xl font-black text-slate-50 sm:text-5xl">Collected Cards</h1>
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-cyan-200/80">Player Inventory</p>
+          <h1 className="lobby-title-glow mt-2 font-display text-4xl font-black text-slate-50 sm:text-5xl">Collected Cards</h1>
           <p className="mt-2 text-sm text-slate-400">
             {collectedCount} / {totalCount} unlocked. Locked cards reveal when collected.
           </p>
           {error && <p className="mt-2 text-sm font-semibold text-rose-200">{error}</p>}
         </div>
         <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
-          <label className="glass-panel flex items-center gap-3 rounded-lg px-4 py-3 sm:w-60">
+          <label className="lobby-glass flex items-center gap-3 rounded-2xl px-4 py-3 sm:w-60">
             <Filter className="text-sky-200" size={18} />
             <select
               value={selectedSpecies}
@@ -53,8 +53,8 @@ export default function Collection() {
             </select>
           </label>
 
-          <label className="glass-panel flex items-center gap-3 rounded-lg px-4 py-3 sm:w-60">
-            <Filter className="text-amber-200" size={18} />
+          <label className="lobby-glass flex items-center gap-3 rounded-2xl px-4 py-3 sm:w-60">
+            <Filter className="text-[#f5c518]" size={18} />
             <select
               value={selectedRarity}
               onChange={(event) => setSelectedRarity(event.target.value)}
@@ -83,7 +83,7 @@ export default function Collection() {
       </section>
 
       {filteredCards.length === 0 && (
-        <div className="glass-panel mt-6 rounded-lg p-8 text-center text-slate-400">
+        <div className="lobby-glass mt-6 rounded-3xl p-8 text-center text-slate-400">
           No cards match this filter.
         </div>
       )}

@@ -102,10 +102,10 @@ export default function BattleDeck() {
 
   return (
     <PageShell showBack>
-      <section className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <section className="lobby-glass mb-6 flex flex-col gap-4 overflow-hidden rounded-3xl p-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.24em] text-amber-200">Battle Loadout</p>
-          <h1 className="mt-2 font-display text-4xl font-black text-slate-50 sm:text-5xl">Battle Deck</h1>
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-[#f5c518]">Battle Loadout</p>
+          <h1 className="lobby-title-glow mt-2 font-display text-4xl font-black text-slate-50 sm:text-5xl">Battle Deck</h1>
           <p className="mt-2 text-sm text-slate-400">Only unlocked cards can enter these five combat slots.</p>
           {error && <p className="mt-2 text-sm font-semibold text-rose-200">{error}</p>}
         </div>
@@ -116,9 +116,9 @@ export default function BattleDeck() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-amber-300/15 bg-slate-950/55 p-4 shadow-xl shadow-black/30">
+      <section className="lobby-glass rounded-3xl p-4">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="font-display text-2xl font-bold text-slate-50">Active Deck</h2>
+          <h2 className="lobby-title-glow font-display text-2xl font-bold text-slate-50">Active Deck</h2>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Drag slots to reorder</p>
         </div>
 
@@ -133,7 +133,7 @@ export default function BattleDeck() {
               onDrop={(event) => handleDrop(event, index)}
               onDragEnd={clearDragState}
               className={`rounded-xl border p-2 transition duration-200 ${
-                selectedSlot === index ? 'border-amber-300/60 bg-amber-300/10 shadow-ember' : 'border-white/10 bg-white/[0.025]'
+                selectedSlot === index ? 'border-[#f5c518]/60 bg-[#f5c518]/10 shadow-ember' : 'border-white/10 bg-white/[0.04]'
               } ${dropSlot === index && draggedSlot !== index ? 'scale-[1.03] border-sky-300/70 bg-sky-300/10 shadow-frost' : ''} ${
                 draggedSlot === index ? 'scale-95 opacity-60' : ''
               }`}
@@ -141,7 +141,7 @@ export default function BattleDeck() {
               <button
                 type="button"
                 onClick={() => setSelectedSlot(index)}
-                className="mb-2 flex w-full items-center justify-between rounded-lg border border-white/10 bg-slate-950/75 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-300 transition hover:border-amber-300/40 hover:text-amber-100"
+                className="mb-2 flex w-full items-center justify-between rounded-xl border border-white/10 bg-slate-950/75 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-300 transition hover:border-[#f5c518]/40 hover:text-[#f5c518]"
               >
                 <span className="flex items-center gap-2">
                   <Grip size={14} />
@@ -162,9 +162,9 @@ export default function BattleDeck() {
         </div>
       </section>
 
-      <section className="mt-6 rounded-xl border border-white/10 bg-slate-950/35 p-4">
+      <section className="lobby-glass mt-6 rounded-3xl p-4">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="font-display text-2xl font-bold text-slate-50">Owned Card Bench</h2>
+          <h2 className="lobby-title-glow font-display text-2xl font-bold text-slate-50">Owned Card Bench</h2>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Place into Slot {selectedSlot + 1}</p>
         </div>
 
@@ -172,14 +172,14 @@ export default function BattleDeck() {
           {benchCards.map((card, index) => (
             <div
               key={card.id}
-              className="animate-fadeUp rounded-xl border border-white/10 bg-white/[0.025] p-2 transition hover:border-amber-300/35"
+              className="animate-fadeUp rounded-2xl border border-white/10 bg-white/[0.04] p-2 backdrop-blur transition hover:border-[#f5c518]/35 hover:shadow-ember"
               style={{ animationDelay: `${Math.min(index * 35, 280)}ms` }}
             >
               <GameCard card={card} size="deck" />
               <button
                 type="button"
                 onClick={() => replaceSlot(card)}
-                className="game-button mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300/30 bg-amber-400/15 px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-amber-100 transition hover:-translate-y-0.5 hover:bg-amber-400/25 hover:shadow-ember"
+                className="game-button mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#f5c518]/30 bg-[#f5c518]/15 px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-[#f5c518] transition hover:-translate-y-0.5 hover:bg-[#f5c518]/25 hover:shadow-ember"
               >
                 <Replace size={15} />
                 Place
@@ -200,8 +200,8 @@ export default function BattleDeck() {
 
 function DeckStat({ icon: Icon, label, value }) {
   return (
-    <div className="glass-panel flex min-w-32 items-center gap-3 rounded-xl px-4 py-3">
-      <Icon className="text-amber-200" size={20} />
+    <div className="lobby-glass flex min-w-32 items-center gap-3 rounded-2xl px-4 py-3">
+      <Icon className="text-[#f5c518]" size={20} />
       <div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
         <p className="text-xl font-black text-slate-50">{value}</p>

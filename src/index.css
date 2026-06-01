@@ -181,6 +181,43 @@ a {
     linear-gradient(135deg, #0a0b1a 0%, #130826 48%, #061525 100%);
 }
 
+.theme-screen {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 50% 36%, rgba(245, 197, 24, 0.12), transparent 24rem),
+    radial-gradient(circle at 16% 18%, rgba(124, 58, 237, 0.28), transparent 25rem),
+    radial-gradient(circle at 84% 22%, rgba(6, 182, 212, 0.2), transparent 23rem),
+    linear-gradient(135deg, #0a0b1a 0%, #130826 48%, #061525 100%);
+}
+
+.theme-screen::before {
+  position: fixed;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(6, 182, 212, 0.1) 38%, transparent 54%),
+    linear-gradient(70deg, transparent 20%, rgba(245, 197, 24, 0.08) 50%, transparent 76%);
+  background-size: 220% 220%;
+  animation: lobby-aurora 12s ease-in-out infinite;
+}
+
+.theme-screen::after {
+  position: fixed;
+  inset: auto 0 0 0;
+  height: 34vh;
+  content: '';
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 100%, rgba(124, 58, 237, 0.18), transparent 55%),
+    radial-gradient(ellipse at 72% 100%, rgba(6, 182, 212, 0.14), transparent 55%),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.045), transparent);
+  filter: blur(12px);
+}
+
 .lobby-screen::before {
   position: absolute;
   inset: 0;

@@ -3,25 +3,25 @@ import { Heart, Lock, Shield, Swords } from 'lucide-react';
 
 const rarityStyles = {
   Common: {
-    border: 'border-slate-400/45',
+    border: 'border-slate-300/45',
     text: 'text-slate-200',
-    glow: 'hover:shadow-[0_0_28px_rgba(148,163,184,0.28)]',
-    badge: 'bg-slate-500/15 text-slate-100 ring-slate-300/20',
-    art: 'from-slate-500/20 via-slate-950 to-slate-900',
+    glow: 'hover:shadow-[0_0_28px_rgba(148,163,184,0.32)]',
+    badge: 'bg-slate-300/12 text-slate-100 ring-slate-300/25',
+    art: 'from-slate-400/22 via-slate-950 to-blue-950',
   },
   Rare: {
-    border: 'border-sky-400/60',
-    text: 'text-sky-200',
-    glow: 'hover:shadow-frost',
-    badge: 'bg-sky-500/15 text-sky-100 ring-sky-300/25',
-    art: 'from-sky-400/25 via-slate-950 to-blue-950',
+    border: 'border-violet-300/70',
+    text: 'text-violet-100',
+    glow: 'hover:shadow-arcane',
+    badge: 'bg-violet-400/16 text-violet-100 ring-violet-300/30',
+    art: 'from-violet-400/28 via-slate-950 to-purple-950',
   },
   Epic: {
-    border: 'border-violet-400/70',
-    text: 'text-violet-200',
-    glow: 'hover:shadow-arcane',
-    badge: 'bg-violet-500/15 text-violet-100 ring-violet-300/25',
-    art: 'from-violet-400/25 via-slate-950 to-fuchsia-950',
+    border: 'border-[#f5c518]/80',
+    text: 'text-[#f5c518]',
+    glow: 'hover:shadow-ember',
+    badge: 'bg-[#f5c518]/16 text-[#f5c518] ring-[#f5c518]/35',
+    art: 'from-[#f5c518]/28 via-slate-950 to-violet-950',
   },
   Legendary: {
     border: 'border-amber-300/80',
@@ -80,7 +80,7 @@ export default function GameCard({ card, size = 'normal' }) {
 
 function CardFront({ card, styles, collected, sizeStyles }) {
   return (
-    <div className={`absolute inset-0 overflow-hidden rounded-xl border ${styles.border} bg-slate-950 p-4 shadow-xl shadow-black/35 [backface-visibility:hidden]`}>
+    <div className={`absolute inset-0 overflow-hidden rounded-xl border ${styles.border} bg-slate-950/90 p-4 shadow-xl shadow-black/35 backdrop-blur [backface-visibility:hidden]`}>
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-70" />
       <div className="mb-3 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
         <span>{collected ? card.species : 'Unknown'}</span>
@@ -134,7 +134,7 @@ function CardBack({ card, styles }) {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.18),transparent_36%)]" />
       <div className="relative flex h-full flex-col">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-200">Card Details</p>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f5c518]">Card Details</p>
           <h3 className="mt-2 font-display text-2xl font-black text-slate-50">{card.name}</h3>
           <p className="mt-1 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
             {card.species} / {card.race}
