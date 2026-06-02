@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
-import { ChevronLeft, Gem, LibraryBig, Shield, Swords } from 'lucide-react';
+import { ChevronLeft, Gem, LibraryBig, PackageOpen, Shield, Swords } from 'lucide-react';
 
 const sparks = Array.from({ length: 22 }, (_, index) => ({
   left: `${(index * 41) % 100}%`,
@@ -19,6 +19,7 @@ const links = [
   { to: '/dashboard', label: 'Lobby', icon: Shield },
   { to: '/inventory', label: 'Inventory', icon: LibraryBig },
   { to: '/battle-deck', label: 'Battle Deck', icon: Swords },
+  { to: '/packs', label: 'Packs', icon: PackageOpen },
 ];
 
 export default function PageShell({ children, showBack = false }) {

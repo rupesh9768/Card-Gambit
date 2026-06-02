@@ -99,6 +99,39 @@ export async function applyDuelReward({ userId, result }) {
   });
 }
 
+export async function openStandardPack({ userId }) {
+  const cost = 100;
+  const packSize = 3;
+  const player = await getMutablePlayer(userId);
+
+  if (Number(player.coins ?? 0) < cost) {
+    const error = new Error('Not enough coins to open this pack.');
+    error.status = 402;
+    throw error;
+  }
+
+  player.coins = Number(player.coins ?? 0) - cost;
+  await saveMutablePlayer(player);
+
+  const cards = [];
+
+  for (let index = 0; index < packSize; index += 1) {
+    const rarity = rollPackRarity();
+    const card = await dropRandomCardByRarity(rarity);
+
+    if (card) {
+      cards.push(toPlain(card));
+    }
+  }
+
+  return {
+    packType: 'Standard Pack',
+    cost,
+    cards,
+    updatedCoins: player.coins,
+  };
+}
+
 async function findRewardPlayer(userId) {
   if (userId) {
     try {
@@ -121,6 +154,23 @@ async function findRewardPlayer(userId) {
   return Player.create(mockPlayer);
 }
 
+async function getMutablePlayer(userId) {
+  if (!isDatabaseConnected()) {
+    mockPlayer.xp = Number(mockPlayer.xp ?? 0);
+    mockPlayer.level = Number(mockPlayer.level ?? 1);
+    mockPlayer.coins = Number(mockPlayer.coins ?? 0);
+    return mockPlayer;
+  }
+
+  return findRewardPlayer(userId);
+}
+
+async function saveMutablePlayer(player) {
+  if (typeof player.save === 'function') {
+    await player.save();
+  }
+}
+
 async function dropRandomCard() {
   if (!isDatabaseConnected()) {
     const card = mockCards[Math.floor(Math.random() * mockCards.length)];
@@ -129,9 +179,7 @@ async function dropRandomCard() {
       return null;
     }
 
-    card.quantity = Number(card.quantity ?? 0) + 1;
-    card.collected = true;
-    return card;
+    return incrementCardQuantity(card);
   }
 
   const cards = await Card.find();
@@ -141,10 +189,61 @@ async function dropRandomCard() {
     return null;
   }
 
+  return incrementCardQuantity(card);
+}
+
+async function dropRandomCardByRarity(rarity) {
+  const cards = await getCardsForDrop();
+  const rarityCards = cards.filter((card) => card.rarity === rarity);
+  const pool = rarityCards.length > 0 ? rarityCards : cards;
+  const card = pool[Math.floor(Math.random() * pool.length)];
+
+  if (!card) {
+    return null;
+  }
+
+  return incrementCardQuantity(card);
+}
+
+async function getCardsForDrop() {
+  if (!isDatabaseConnected()) {
+    return mockCards;
+  }
+
+  return Card.find();
+}
+
+async function incrementCardQuantity(card) {
   card.collected = true;
   card.quantity = Number(card.quantity ?? 0) + 1;
-  await card.save();
+
+  if (typeof card.save === 'function') {
+    await card.save();
+  }
+
   return card;
+}
+
+function rollPackRarity() {
+  const roll = Math.random() * 100;
+
+  if (roll < 60) {
+    return 'Common';
+  }
+
+  if (roll < 85) {
+    return 'Rare';
+  }
+
+  if (roll < 95) {
+    return 'Epic';
+  }
+
+  if (roll < 99) {
+    return 'Legendary';
+  }
+
+  return 'Unknown';
 }
 
 function applyLevelUps(player) {

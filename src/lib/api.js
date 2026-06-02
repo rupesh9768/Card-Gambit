@@ -55,3 +55,10 @@ export function applyDuelReward({ userId, result }) {
     body: JSON.stringify({ userId, result }),
   });
 }
+
+export function openPack(userId) {
+  return request('/api/pack/open', {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  });
+}

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { connectDatabase, isDatabaseConnected } from './db.js';
 import duelRoutes from './routes/duel.js';
+import packRoutes from './routes/pack.js';
 import { collectCard, getCards, getCollectionSummary, getPlayer, getRarities, getSpecies } from './services/gameService.js';
 
 const app = express();
@@ -9,6 +10,7 @@ const PORT = Number(process.env.PORT) || 4000;
 
 app.use(express.json());
 app.use('/api/duel', duelRoutes);
+app.use('/api/pack', packRoutes);
 
 app.get('/api/health', (_request, response) => {
   response.json({

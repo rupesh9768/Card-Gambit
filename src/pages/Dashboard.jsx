@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, ChevronRight, Coins, Gem, LibraryBig, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
+import { Bot, ChevronRight, Coins, Gem, LibraryBig, PackageOpen, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
 import { getDashboard } from '../lib/api.js';
 
 const fallbackPlayer = {
@@ -20,6 +20,7 @@ const navLinks = [
   { to: '/dashboard', label: 'Lobby' },
   { to: '/inventory', label: 'Inventory' },
   { to: '/battle-deck', label: 'Battle Deck' },
+  { to: '/packs', label: 'Packs' },
 ];
 
 const battleModes = [
@@ -244,9 +245,10 @@ function ArenaGate({ onBattle }) {
         ))}
       </div>
 
-      <div className="relative mt-4 grid grid-cols-2 gap-3">
+      <div className="relative mt-4 grid grid-cols-3 gap-3">
         <Shortcut to="/inventory" icon={LibraryBig} label="Inventory" />
         <Shortcut to="/battle-deck" icon={Swords} label="Battle Deck" />
+        <Shortcut to="/packs" icon={PackageOpen} label="Open Packs" />
       </div>
     </motion.section>
   );
