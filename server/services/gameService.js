@@ -5,16 +5,20 @@ import { Card } from '../models/Card.js';
 import { Player } from '../models/Player.js';
 import { calculateRating } from '../utils/cardRating.js';
 
-export async function getCards() {
+export async function getCards(user = null) {
   if (!isDatabaseConnected()) {
-    return mockCards.map(withRating);
+    return mergeUserCards(mockCards.map(withRating), user);
   }
 
   const cards = await Card.find().sort({ gameId: 1 });
-  return cards.map(toPlain);
+  return mergeUserCards(cards.map(toPlainCard), user);
 }
 
-export async function getPlayer() {
+export async function getPlayer(user = null) {
+  if (user) {
+    return withProgressFields(toPlain(user));
+  }
+
   if (!isDatabaseConnected()) {
     return withProgressFields(mockPlayer);
   }
@@ -38,7 +42,7 @@ export function getCollectionSummary(cards) {
   };
 }
 
-export async function collectCard(cardId) {
+export async function collectCard(cardId, user = null) {
   if (!isDatabaseConnected()) {
     const card = mockCards.find((card) => card.id === cardId);
 
@@ -50,22 +54,31 @@ export async function collectCard(cardId) {
     return card;
   }
 
-  return Card.findOneAndUpdate(
-    { gameId: cardId },
-    { $set: { collected: true }, $max: { quantity: 1 } },
-    { new: true },
-  );
+  const card = await Card.findOne({ gameId: cardId });
+
+  if (!card) {
+    return null;
+  }
+
+  if (user) {
+    incrementUserCard(user, card.gameId);
+    await user.save();
+    return mergeCardWithUser(toPlainCard(card), user);
+  }
+
+  return toPlainCard(card);
 }
 
 export function getXpToNextLevel(level) {
   return Math.max(1, level) * 100;
 }
 
-export async function applyDuelReward({ userId, result }) {
+export async function applyDuelReward({ user, userId, result }) {
   const won = result === 'win';
   const xpGained = won ? 50 : 20;
   const coinsGained = won ? 100 : 30;
-  const droppedCard = won && Math.random() < 0.3 ? await dropRandomCard() : null;
+  const rewardUser = user ?? (isDatabaseConnected() ? await findRewardPlayer(userId) : null);
+  const droppedCard = won && Math.random() < 0.3 ? await dropRandomCard(rewardUser) : null;
 
   if (!isDatabaseConnected()) {
     const previousLevel = mockPlayer.level ?? 1;
@@ -83,7 +96,7 @@ export async function applyDuelReward({ userId, result }) {
     });
   }
 
-  const player = await findRewardPlayer(userId);
+  const player = rewardUser;
   const previousLevel = player.level ?? 1;
 
   player.xp = Number(player.xp ?? 0) + xpGained;
@@ -101,10 +114,10 @@ export async function applyDuelReward({ userId, result }) {
   });
 }
 
-export async function openStandardPack({ userId }) {
+export async function openStandardPack({ user, userId }) {
   const cost = 100;
   const packSize = 3;
-  const player = await getMutablePlayer(userId);
+  const player = user ?? (await getMutablePlayer(userId));
 
   if (Number(player.coins ?? 0) < cost) {
     const error = new Error('Not enough coins to open this pack.');
@@ -119,10 +132,10 @@ export async function openStandardPack({ userId }) {
 
   for (let index = 0; index < packSize; index += 1) {
     const rarity = rollPackRarity();
-    const card = await dropRandomCardByRarity(rarity);
+    const card = await dropRandomCardByRarity(rarity, player);
 
     if (card) {
-      cards.push(toPlain(card));
+      cards.push(toPlainCard(card));
     }
   }
 
@@ -173,7 +186,7 @@ async function saveMutablePlayer(player) {
   }
 }
 
-async function dropRandomCard() {
+async function dropRandomCard(user = null) {
   if (!isDatabaseConnected()) {
     const card = mockCards[Math.floor(Math.random() * mockCards.length)];
 
@@ -191,10 +204,10 @@ async function dropRandomCard() {
     return null;
   }
 
-  return incrementCardQuantity(card);
+  return incrementCardQuantity(card, user);
 }
 
-async function dropRandomCardByRarity(rarity) {
+async function dropRandomCardByRarity(rarity, user = null) {
   const cards = await getCardsForDrop();
   const rarityCards = cards.filter((card) => card.rarity === rarity);
   const pool = rarityCards.length > 0 ? rarityCards : cards;
@@ -204,7 +217,7 @@ async function dropRandomCardByRarity(rarity) {
     return null;
   }
 
-  return incrementCardQuantity(card);
+  return incrementCardQuantity(card, user);
 }
 
 async function getCardsForDrop() {
@@ -215,7 +228,22 @@ async function getCardsForDrop() {
   return Card.find();
 }
 
-async function incrementCardQuantity(card) {
+async function incrementCardQuantity(card, user = null) {
+  if (user) {
+    const plainCard = toPlainCard(card);
+    const ownedCard = incrementUserCard(user, plainCard.id ?? plainCard.gameId);
+
+    if (typeof user.save === 'function') {
+      await user.save();
+    }
+
+    return {
+      ...plainCard,
+      collected: true,
+      quantity: ownedCard.quantity,
+    };
+  }
+
   card.collected = true;
   card.quantity = Number(card.quantity ?? 0) + 1;
 
@@ -268,7 +296,7 @@ function withProgressFields(player) {
 
 function buildRewardResponse({ xpGained, coinsGained, previousLevel, player, droppedCard }) {
   const plainPlayer = toPlain(player);
-  const plainCard = droppedCard ? toPlain(droppedCard) : null;
+  const plainCard = droppedCard ? toPlainCard(droppedCard) : null;
   const normalizedPlayer = withProgressFields(plainPlayer);
 
   return {
@@ -285,7 +313,11 @@ function buildRewardResponse({ xpGained, coinsGained, previousLevel, player, dro
 }
 
 function toPlain(document) {
-  return withRating(typeof document.toJSON === 'function' ? document.toJSON() : document);
+  return typeof document.toJSON === 'function' ? document.toJSON() : document;
+}
+
+function toPlainCard(document) {
+  return withRating(toPlain(document));
 }
 
 function withRating(card) {
@@ -293,4 +325,40 @@ function withRating(card) {
     ...card,
     rating: calculateRating(card),
   };
+}
+
+function mergeUserCards(cards, user) {
+  if (!user) {
+    return cards;
+  }
+
+  return cards.map((card) => mergeCardWithUser(card, user));
+}
+
+function mergeCardWithUser(card, user) {
+  const ownedCard = findUserCard(user, card.id ?? card.gameId);
+  const quantity = Number(ownedCard?.quantity ?? 0);
+
+  return {
+    ...card,
+    collected: quantity > 0,
+    quantity,
+  };
+}
+
+function findUserCard(user, cardId) {
+  return user.cards?.find((card) => Number(card.cardId) === Number(cardId));
+}
+
+function incrementUserCard(user, cardId) {
+  const ownedCard = findUserCard(user, cardId);
+
+  if (ownedCard) {
+    ownedCard.quantity = Number(ownedCard.quantity ?? 0) + 1;
+    return ownedCard;
+  }
+
+  const nextCard = { cardId: Number(cardId), quantity: 1 };
+  user.cards.push(nextCard);
+  return nextCard;
 }

@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Grip, Replace, ShieldAlert, Swords } from 'lucide-react';
 import GameCard from '../components/GameCard.jsx';
 import PageShell from '../components/PageShell.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { getInventory } from '../lib/api.js';
 
 const deckStorageKey = 'card-gambit-deck';
 const maxDeckSize = 5;
 
 export default function BattleDeck() {
+  const { user } = useAuth();
   const [cards, setCards] = useState([]);
   const [deckIds, setDeckIds] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
@@ -21,7 +23,7 @@ export default function BattleDeck() {
         const ownedCards = data.cards.filter((card) => card.collected);
         setCards(ownedCards);
 
-        const savedDeckIds = readSavedDeck();
+        const savedDeckIds = readSavedDeck(user?.id);
         const ownedIds = ownedCards.map((card) => card.id);
         const validSavedDeck = savedDeckIds.filter((id) => ownedIds.includes(id)).slice(0, maxDeckSize);
         const fillCards = ownedCards
@@ -32,13 +34,13 @@ export default function BattleDeck() {
         setDeckIds([...validSavedDeck, ...fillCards]);
       })
       .catch(() => setError('Could not load battle deck cards.'));
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (deckIds.length > 0) {
-      localStorage.setItem(deckStorageKey, JSON.stringify(deckIds));
+      localStorage.setItem(getDeckStorageKey(user?.id), JSON.stringify(deckIds));
     }
-  }, [deckIds]);
+  }, [deckIds, user?.id]);
 
   const deckCards = useMemo(
     () => deckIds.map((id) => cards.find((card) => card.id === id)).filter(Boolean),
@@ -217,9 +219,13 @@ function DeckStat({ icon: Icon, label, value }) {
   );
 }
 
-function readSavedDeck() {
+function getDeckStorageKey(userId) {
+  return userId ? `${deckStorageKey}:${userId}` : deckStorageKey;
+}
+
+function readSavedDeck(userId) {
   try {
-    return JSON.parse(localStorage.getItem(deckStorageKey) ?? '[]');
+    return JSON.parse(localStorage.getItem(getDeckStorageKey(userId)) ?? '[]');
   } catch {
     return [];
   }

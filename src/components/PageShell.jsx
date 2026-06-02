@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
-import { ChevronLeft, Gem, LibraryBig, PackageOpen, Shield, Swords } from 'lucide-react';
+import { ChevronLeft, Gem, LibraryBig, LogOut, PackageOpen, Shield, Swords } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const sparks = Array.from({ length: 22 }, (_, index) => ({
   left: `${(index * 41) % 100}%`,
@@ -23,6 +24,8 @@ const links = [
 ];
 
 export default function PageShell({ children, showBack = false }) {
+  const { logout } = useAuth();
+
   return (
     <div className="theme-screen">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -74,15 +77,25 @@ export default function PageShell({ children, showBack = false }) {
           ))}
         </nav>
 
-        {showBack && (
-          <Link
-            to="/dashboard"
-            className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-100 transition hover:border-cyan-300/55 hover:shadow-frost"
+        <div className="flex items-center gap-2">
+          {showBack && (
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-100 transition hover:border-cyan-300/55 hover:shadow-frost"
+            >
+              <ChevronLeft size={16} />
+              Lobby
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={logout}
+            className="inline-flex items-center gap-2 rounded-full border border-rose-300/25 bg-rose-500/10 px-4 py-2 text-sm font-bold text-rose-100 transition hover:border-rose-300/55 hover:shadow-[0_0_24px_rgba(244,63,94,0.28)]"
           >
-            <ChevronLeft size={16} />
-            Lobby
-          </Link>
-        )}
+            <LogOut size={16} />
+            Logout
+          </button>
+        </div>
       </header>
 
       <main className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">{children}</main>

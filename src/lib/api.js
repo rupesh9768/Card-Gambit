@@ -1,16 +1,64 @@
-async function request(path, options) {
+const tokenKey = 'card-gambit-token';
+
+export function getStoredToken() {
+  return localStorage.getItem(tokenKey);
+}
+
+export function setStoredToken(token) {
+  localStorage.setItem(tokenKey, token);
+}
+
+export function clearStoredToken() {
+  localStorage.removeItem(tokenKey);
+}
+
+async function request(path, options = {}) {
+  const token = getStoredToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers ?? {}),
+  };
+
   const response = await fetch(path, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
     ...options,
+    headers,
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    let message = `Request failed with status ${response.status}`;
+
+    try {
+      const error = await response.json();
+      message = error.message ?? message;
+    } catch {
+      // Keep the status-based message when the response has no JSON body.
+    }
+
+    const requestError = new Error(message);
+    requestError.status = response.status;
+    throw requestError;
   }
 
   return response.json();
+}
+
+export function registerUser({ username, email, password }) {
+  return request('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, email, password }),
+  });
+}
+
+export function loginUser({ email, password }) {
+  return request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function getCurrentUser() {
+  return request('/api/auth/me');
 }
 
 export function getDashboard() {

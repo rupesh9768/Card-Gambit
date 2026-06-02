@@ -53,7 +53,7 @@ export async function startDuel(request, response, next) {
       return response.status(400).json({ message: 'Player deck must contain 5 cards.' });
     }
 
-    const allCards = (await getCards()).map(toPlainCard);
+    const allCards = (await getCards(request.user)).map(toPlainCard);
     const selectedIds = playerDeck.slice(0, maxRounds).map((card) => card.id);
     const selectedPlayerDeck = selectedIds.map((id) => allCards.find((card) => card.id === id));
     const hasMissingCard = selectedPlayerDeck.some((card) => !card);
@@ -167,7 +167,7 @@ export async function rewardDuel(request, response, next) {
       return response.status(400).json({ message: 'Result must be win or lose.' });
     }
 
-    const reward = await applyDuelReward({ userId, result });
+    const reward = await applyDuelReward({ user: request.user, userId, result });
     return response.json(reward);
   } catch (error) {
     next(error);

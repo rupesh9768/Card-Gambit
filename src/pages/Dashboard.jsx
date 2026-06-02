@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, ChevronRight, Coins, Gem, LibraryBig, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
+import { Bot, ChevronRight, Coins, Gem, LibraryBig, LogOut, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.jsx';
 import { getDashboard } from '../lib/api.js';
 
 const fallbackPlayer = {
@@ -66,6 +67,7 @@ const cardGhosts = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [dashboard, setDashboard] = useState(null);
 
   useEffect(() => {
@@ -138,6 +140,14 @@ export default function Dashboard() {
                 {link.label}
               </NavLink>
             ))}
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-full border border-rose-300/25 bg-rose-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-rose-100 transition hover:border-rose-300/55 hover:shadow-[0_0_24px_rgba(244,63,94,0.28)]"
+            >
+              <LogOut className="mr-2 inline" size={14} />
+              Logout
+            </button>
           </nav>
         </motion.header>
 

@@ -1,16 +1,19 @@
 import 'dotenv/config';
 import express from 'express';
 import { connectDatabase, isDatabaseConnected } from './db.js';
+import authRoutes from './routes/auth.js';
 import duelRoutes from './routes/duel.js';
 import packRoutes from './routes/pack.js';
+import { authenticate } from './middleware/authMiddleware.js';
 import { collectCard, getCards, getCollectionSummary, getPlayer, getRarities, getSpecies } from './services/gameService.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
 
 app.use(express.json());
-app.use('/api/duel', duelRoutes);
-app.use('/api/pack', packRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/duel', authenticate, duelRoutes);
+app.use('/api/pack', authenticate, packRoutes);
 
 app.get('/api/health', (_request, response) => {
   response.json({
@@ -19,9 +22,9 @@ app.get('/api/health', (_request, response) => {
   });
 });
 
-app.get('/api/dashboard', async (_request, response, next) => {
+app.get('/api/dashboard', authenticate, async (request, response, next) => {
   try {
-    const [player, cards] = await Promise.all([getPlayer(), getCards()]);
+    const [player, cards] = await Promise.all([getPlayer(request.user), getCards(request.user)]);
 
     response.json({
       player,
@@ -32,9 +35,9 @@ app.get('/api/dashboard', async (_request, response, next) => {
   }
 });
 
-app.get('/api/cards', async (_request, response, next) => {
+app.get('/api/cards', authenticate, async (request, response, next) => {
   try {
-    const cards = await getCards();
+    const cards = await getCards(request.user);
 
     response.json({
       cards,
@@ -47,9 +50,9 @@ app.get('/api/cards', async (_request, response, next) => {
   }
 });
 
-app.get('/api/inventory', async (_request, response, next) => {
+app.get('/api/inventory', authenticate, async (request, response, next) => {
   try {
-    const cards = await getCards();
+    const cards = await getCards(request.user);
     const ownedCards = cards.filter((card) => card.collected);
 
     response.json({
@@ -63,7 +66,7 @@ app.get('/api/inventory', async (_request, response, next) => {
   }
 });
 
-app.post('/api/cards/:id/collect', async (request, response, next) => {
+app.post('/api/cards/:id/collect', authenticate, async (request, response, next) => {
   try {
     const cardId = Number(request.params.id);
 
@@ -71,7 +74,7 @@ app.post('/api/cards/:id/collect', async (request, response, next) => {
       return response.status(400).json({ message: 'Invalid card id.' });
     }
 
-    const card = await collectCard(cardId);
+    const card = await collectCard(cardId, request.user);
 
     if (!card) {
       return response.status(404).json({ message: 'Card not found.' });
@@ -96,6 +99,10 @@ app.post('/api/play/:mode', (request, response) => {
     status: 'queued',
     message: `${getModeLabel(mode)} battle will be connected later.`,
   });
+});
+
+app.get('/api/user/profile', authenticate, async (request, response) => {
+  response.json({ user: await getPlayer(request.user) });
 });
 
 function getModeLabel(mode) {
