@@ -26,6 +26,21 @@ const rarityStyles = {
   Unknown: 'border-fuchsia-300/75 shadow-[0_0_36px_rgba(217,70,239,0.45)] pack-glitch',
 };
 
+const rarityImpact = {
+  Common: 'pack-impact-common',
+  Rare: 'pack-impact-rare',
+  Epic: 'pack-impact-epic',
+  Legendary: 'pack-impact-legendary',
+  Unknown: 'pack-impact-unknown',
+};
+
+const placeholderCards = Array.from({ length: 3 }, (_, index) => ({
+  id: `pack-placeholder-${index}`,
+  name: 'Sealed Reward',
+  rarity: 'Common',
+  isPlaceholder: true,
+}));
+
 export default function PacksPage() {
   const [coins, setCoins] = useState(null);
   const [cards, setCards] = useState([]);
@@ -45,7 +60,7 @@ export default function PacksPage() {
     }
 
     setPhase('opening');
-    setCards([]);
+    setCards(placeholderCards);
     setRevealedCount(0);
     setError('');
 
@@ -55,11 +70,12 @@ export default function PacksPage() {
       setCards(result.cards);
 
       result.cards.forEach((_card, index) => {
-        setTimeout(() => setRevealedCount(index + 1), 650 + index * 430);
+        setTimeout(() => setRevealedCount(index + 1), 520 + index * 560);
       });
-      setTimeout(() => setPhase('revealed'), 650 + result.cards.length * 430 + 350);
+      setTimeout(() => setPhase('revealed'), 520 + result.cards.length * 560 + 520);
     } catch {
       setPhase('idle');
+      setCards([]);
       setError('Not enough coins to open this pack.');
     }
   }
@@ -74,6 +90,17 @@ export default function PacksPage() {
   return (
     <main className="lobby-screen flex items-center justify-center px-4 py-4">
       <PackBackground />
+      <AnimatePresence>
+        {phase !== 'idle' && (
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-[1] bg-black/45"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+          />
+        )}
+      </AnimatePresence>
 
       <section className="relative z-10 grid h-full w-full max-w-7xl grid-rows-[auto_1fr] gap-4">
         <header className="flex h-16 items-center justify-between rounded-full border border-white/10 bg-black/25 px-4 shadow-2xl shadow-black/30 backdrop-blur-xl">
@@ -104,20 +131,32 @@ export default function PacksPage() {
           </div>
         </header>
 
-        <div className="lobby-glass grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-[2rem] p-5 text-center">
-          <div>
+        <div className="lobby-glass relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-[2rem] p-5 text-center">
+          <AnimatePresence>
+            {phase !== 'idle' && (
+              <motion.div
+                className="pack-spotlight pointer-events-none absolute inset-0 z-0"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.45 }}
+              />
+            )}
+          </AnimatePresence>
+
+          <div className="relative z-10">
             <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200/80">Standard Pack</p>
             <h1 className="lobby-title-glow mt-1 font-display text-4xl font-black uppercase text-white sm:text-5xl">Open Rewards</h1>
             <p className="mt-2 text-sm text-slate-400">Costs {packCost} coins. Reveals 3 cards.</p>
           </div>
 
-          <div className="grid min-h-0 place-items-center">
+          <div className="relative z-10 grid min-h-0 place-items-center">
             <div className="relative grid h-full min-h-[21rem] w-full max-w-5xl place-items-center">
               <motion.div
-                className="pack-object relative z-10 grid h-56 w-44 place-items-center rounded-[1.8rem] border border-[#f5c518]/45 bg-gradient-to-br from-[#f5c518]/20 via-violet-700/40 to-cyan-950/45 shadow-ember"
+                className="pack-object relative z-10 grid h-52 w-40 place-items-center rounded-[1.8rem] border border-[#f5c518]/45 bg-gradient-to-br from-[#f5c518]/20 via-violet-700/40 to-cyan-950/45 shadow-ember"
                 animate={
                   phase === 'opening'
-                    ? { rotate: [-2, 2, -3, 3, 0], scale: [1, 1.04, 1.18, 0.96], y: [0, -4, -18, 8] }
+                    ? { rotate: [-2, 2, -3, 3, 0], scale: [1, 1.04, 1.18, 0.92], y: [0, -4, -22, 18], opacity: [1, 1, 0.92, 0.45] }
                     : { y: [0, -8, 0] }
                 }
                 transition={phase === 'opening' ? { duration: 0.9 } : { duration: 3, repeat: Infinity }}
@@ -127,7 +166,7 @@ export default function PacksPage() {
                 <p className="absolute bottom-7 font-display text-2xl font-black uppercase text-white">Standard</p>
               </motion.div>
 
-              <div className="absolute inset-x-0 top-6 z-20 flex justify-center">
+              <div className="absolute inset-x-0 top-3 z-20 flex justify-center">
                 {cards.map((card, index) => (
                   <PackCard key={`${card.id}-${index}`} card={card} index={index} revealed={revealedCount > index} />
                 ))}
@@ -175,63 +214,103 @@ export default function PacksPage() {
 
 function PackCard({ card, index, revealed }) {
   const style = rarityStyles[card.rarity] ?? rarityStyles.Unknown;
+  const impact = rarityImpact[card.rarity] ?? rarityImpact.Unknown;
+  const isPlaceholder = card.isPlaceholder;
 
   return (
     <motion.div
-      className={`pack-reveal-card absolute h-64 w-44 rounded-2xl border bg-slate-950 ${style}`}
+      className={`pack-reveal-card absolute h-72 w-48 rounded-2xl border bg-slate-950 ${style}`}
       initial={{ opacity: 0, y: 120, scale: 0 }}
       animate={{
         opacity: 1,
-        y: revealed ? -8 : 82,
-        x: (index - 1) * 168,
-        scale: revealed ? 1 : 0.78,
+        y: revealed ? -12 : 72,
+        x: (index - 1) * 218,
+        scale: revealed ? [0.82, card.rarity === 'Epic' ? 1.13 : 1.1, 1] : 0.78,
       }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: revealed ? 0.64 : 0.7, ease: [0.22, 1, 0.36, 1] }}
     >
-      <AnimatePresence mode="wait" initial={false}>
-        {revealed ? (
-          <motion.div
-            key="front"
-            className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl p-2"
-            initial={{ opacity: 0, rotateY: -92, scale: 0.92 }}
-            animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-            exit={{ opacity: 0, rotateY: 92, scale: 0.92 }}
-            transition={{ duration: 0.48, ease: 'easeOut' }}
-          >
-            <div className="relative h-40 overflow-hidden rounded-xl border border-white/10 bg-violet-950">
-              {card.imageUrl ? (
-                <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top" />
-              ) : (
-                <div className="grid h-full place-items-center">
-                  <span className="font-display text-5xl font-black text-slate-400">{card.name.charAt(0)}</span>
-                </div>
-              )}
-              <div className="pack-shimmer absolute inset-0" />
-            </div>
-            <div className="mt-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/70">{card.rarity}</p>
-              <h3 className="font-display text-xl font-black leading-tight text-white">{card.name}</h3>
-              <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+      <motion.div
+        className="pack-card-inner"
+        animate={{ rotateY: revealed ? 180 : 0 }}
+        transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="pack-card-face pack-card-back">
+          <div className="grid h-16 w-16 place-items-center rounded-full border border-[#f5c518]/30 bg-black/35 text-[#f5c518] shadow-ember">
+            <Sparkles size={28} />
+          </div>
+          <p className="absolute bottom-8 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-100/55">Sealed</p>
+        </div>
+
+        <div className="pack-card-face pack-card-front flex flex-col p-2">
+          <div className="relative h-44 overflow-hidden rounded-xl border border-white/10 bg-violet-950">
+            <CardArtwork card={card} />
+            <div className="pack-shimmer absolute inset-0" />
+          </div>
+          <div className="mt-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-left">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100/70">{card.rarity}</p>
+              <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/80">
                 Qty {card.quantity ?? 1}
+              </span>
+            </div>
+            <h3 className="mt-1 font-display text-lg font-black leading-tight text-white">{isPlaceholder ? 'Mystery Reward' : card.name}</h3>
+            {!isPlaceholder && (
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                {card.race ?? card.species ?? 'Arcane Card'}
               </p>
-            </div>
-          </motion.div>
-        ) : (
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {revealed && (
           <motion.div
-            key="back"
-            className="absolute inset-0 grid place-items-center rounded-2xl bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950"
-            initial={{ opacity: 0, rotateY: -92, scale: 0.92 }}
-            animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-            exit={{ opacity: 0, rotateY: 92, scale: 0.92 }}
-            transition={{ duration: 0.35, ease: 'easeIn' }}
-          >
-            <div className="grid h-16 w-16 place-items-center rounded-full border border-[#f5c518]/30 bg-black/35 text-[#f5c518] shadow-ember">
-              <Sparkles size={28} />
-            </div>
-          </motion.div>
+            className={`pack-impact pointer-events-none absolute inset-[-1.5rem] rounded-[2rem] ${impact}`}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: [0, 1, 0], scale: [0.75, 1.16, 1.35] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: card.rarity === 'Common' ? 0.45 : 0.95, ease: 'easeOut' }}
+          />
         )}
       </AnimatePresence>
+
+      {revealed && card.rarity === 'Legendary' && <LegendaryBurst />}
     </motion.div>
+  );
+}
+
+function CardArtwork({ card }) {
+  if (card.imageUrl) {
+    return <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top" />;
+  }
+
+  return (
+    <div className="pack-fantasy-art relative h-full w-full overflow-hidden">
+      <span className="absolute -left-10 top-4 h-28 w-28 rounded-full bg-[#f5c518]/25 blur-2xl" />
+      <span className="absolute bottom-0 right-0 h-32 w-32 rounded-full bg-cyan-300/20 blur-2xl" />
+      <span className="absolute inset-7 rounded-full border border-[#f5c518]/20 shadow-[inset_0_0_28px_rgba(245,197,24,0.14)]" />
+      <span className="absolute inset-x-6 bottom-8 h-20 rounded-full bg-black/30 blur-xl" />
+    </div>
+  );
+}
+
+function LegendaryBurst() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20">
+      {Array.from({ length: 14 }, (_, index) => (
+        <span
+          key={index}
+          className="pack-burst-spark"
+          style={{
+            left: '50%',
+            top: '50%',
+            '--angle': `${index * 25.7}deg`,
+            animationDelay: `${index * 0.025}s`,
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
