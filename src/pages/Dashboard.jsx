@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, ChevronRight, Coins, Gem, LibraryBig, PackageOpen, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
+import { Bot, ChevronRight, Coins, Gem, LibraryBig, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
 import { getDashboard } from '../lib/api.js';
 
 const fallbackPlayer = {
@@ -244,12 +244,6 @@ function ArenaGate({ onBattle }) {
           <BattleButton key={mode.label} mode={mode} index={index} onClick={() => onBattle(mode.mode)} />
         ))}
       </div>
-
-      <div className="relative mt-4 grid grid-cols-3 gap-3">
-        <Shortcut to="/inventory" icon={LibraryBig} label="Inventory" />
-        <Shortcut to="/battle-deck" icon={Swords} label="Battle Deck" />
-        <Shortcut to="/packs" icon={PackageOpen} label="Open Packs" />
-      </div>
     </motion.section>
   );
 }
@@ -261,44 +255,29 @@ function BattleButton({ mode, index, onClick }) {
     <motion.button
       type="button"
       onClick={onClick}
-      className={`battle-card-panel group relative min-h-[7.2rem] overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-r ${mode.tone} p-4 text-left ${mode.glow}`}
+      className={`battle-card-panel group relative min-h-[5.65rem] overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-r ${mode.tone} p-3 text-left ring-1 ring-white/10 ${mode.glow}`}
       initial={{ opacity: 0, x: 36 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.45, delay: 0.18 + index * 0.1 }}
-      whileHover={{ y: -4, scale: 1.015 }}
+      whileHover={{ y: -3, scale: 1.012 }}
       whileTap={{ scale: 0.97 }}
     >
+      <span className="absolute left-0 top-0 h-full w-1 bg-white/45 shadow-[0_0_18px_rgba(255,255,255,0.55)]" />
+      <span className="absolute -right-10 -top-12 h-28 w-28 rounded-full bg-white/18 blur-2xl transition group-hover:scale-125" />
       <div className="relative z-10 flex h-full items-center justify-between gap-4">
         <span className="flex items-center gap-4">
-          <span className="grid h-16 w-16 place-items-center rounded-2xl border border-white/20 bg-black/28 text-white shadow-2xl transition group-hover:scale-110">
-            <Icon size={30} />
+          <span className="grid h-12 w-12 place-items-center rounded-2xl border border-white/20 bg-black/30 text-white shadow-2xl transition group-hover:scale-110 group-hover:rotate-3">
+            <Icon size={25} />
           </span>
           <span>
-            <span className="block font-display text-3xl font-black uppercase leading-none text-white drop-shadow-[0_0_16px_rgba(255,255,255,0.3)]">
+            <span className="block font-display text-2xl font-black uppercase leading-none text-white drop-shadow-[0_0_16px_rgba(255,255,255,0.3)]">
               {mode.label}
             </span>
-            <span className="mt-2 block text-xs font-black uppercase tracking-[0.2em] text-white/72">{mode.subtitle}</span>
+            <span className="mt-1.5 block text-[10px] font-black uppercase tracking-[0.18em] text-white/72">{mode.subtitle}</span>
           </span>
         </span>
-        <ChevronRight className="text-white/75 transition group-hover:translate-x-2 group-hover:text-white" size={34} />
+        <ChevronRight className="text-white/75 transition group-hover:translate-x-2 group-hover:text-white" size={30} />
       </div>
     </motion.button>
-  );
-}
-
-function Shortcut({ to, icon: Icon, label }) {
-  return (
-    <motion.div whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-      <Link
-        to={to}
-        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-slate-100 backdrop-blur transition hover:border-[#f5c518]/45 hover:text-[#f5c518] hover:shadow-ember"
-      >
-        <span className="flex items-center gap-3">
-          <Icon size={19} />
-          {label}
-        </span>
-        <ChevronRight size={18} />
-      </Link>
-    </motion.div>
   );
 }

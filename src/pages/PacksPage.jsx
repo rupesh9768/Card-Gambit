@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Coins, Gem, Home, PackageOpen, Sparkles } from 'lucide-react';
 import { getDashboard, openPack } from '../lib/api.js';
 
@@ -104,17 +104,17 @@ export default function PacksPage() {
           </div>
         </header>
 
-        <div className="lobby-glass grid min-h-0 overflow-hidden rounded-[2rem] p-5 text-center">
+        <div className="lobby-glass grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-[2rem] p-5 text-center">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200/80">Standard Pack</p>
-            <h1 className="lobby-title-glow mt-1 font-display text-5xl font-black uppercase text-white">Open Rewards</h1>
+            <h1 className="lobby-title-glow mt-1 font-display text-4xl font-black uppercase text-white sm:text-5xl">Open Rewards</h1>
             <p className="mt-2 text-sm text-slate-400">Costs {packCost} coins. Reveals 3 cards.</p>
           </div>
 
           <div className="grid min-h-0 place-items-center">
-            <div className="relative grid w-full max-w-5xl place-items-center">
+            <div className="relative grid h-full min-h-[21rem] w-full max-w-5xl place-items-center">
               <motion.div
-                className="pack-object relative grid h-64 w-48 place-items-center rounded-[1.8rem] border border-[#f5c518]/45 bg-gradient-to-br from-[#f5c518]/20 via-violet-700/40 to-cyan-950/45 shadow-ember"
+                className="pack-object relative z-10 grid h-56 w-44 place-items-center rounded-[1.8rem] border border-[#f5c518]/45 bg-gradient-to-br from-[#f5c518]/20 via-violet-700/40 to-cyan-950/45 shadow-ember"
                 animate={
                   phase === 'opening'
                     ? { rotate: [-2, 2, -3, 3, 0], scale: [1, 1.04, 1.18, 0.96], y: [0, -4, -18, 8] }
@@ -127,7 +127,7 @@ export default function PacksPage() {
                 <p className="absolute bottom-7 font-display text-2xl font-black uppercase text-white">Standard</p>
               </motion.div>
 
-              <div className="absolute inset-x-0 top-[43%] flex justify-center gap-5">
+              <div className="absolute inset-x-0 top-6 z-20 flex justify-center">
                 {cards.map((card, index) => (
                   <PackCard key={`${card.id}-${index}`} card={card} index={index} revealed={revealedCount > index} />
                 ))}
@@ -135,7 +135,7 @@ export default function PacksPage() {
             </div>
           </div>
 
-          <div className="min-h-20">
+          <div className="relative z-30 min-h-20">
             {error && <p className="mb-3 text-sm font-black text-rose-200">{error}</p>}
             {phase === 'revealed' ? (
               <div className="flex flex-wrap justify-center gap-3">
@@ -178,43 +178,59 @@ function PackCard({ card, index, revealed }) {
 
   return (
     <motion.div
-      className={`pack-reveal-card relative h-72 w-48 overflow-hidden rounded-2xl border bg-slate-950 p-2 ${style}`}
-      initial={{ opacity: 0, y: 120, scale: 0, rotateY: 0 }}
+      className={`pack-reveal-card absolute h-64 w-44 rounded-2xl border bg-slate-950 ${style}`}
+      initial={{ opacity: 0, y: 120, scale: 0 }}
       animate={{
         opacity: 1,
-        y: revealed ? -80 : 20,
-        x: (index - 1) * 190,
-        scale: revealed ? 1 : 0.75,
-        rotateY: revealed ? 180 : 0,
+        y: revealed ? -8 : 82,
+        x: (index - 1) * 168,
+        scale: revealed ? 1 : 0.78,
       }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      style={{ transformStyle: 'preserve-3d' }}
     >
-      <div className="absolute inset-0 grid place-items-center rounded-2xl bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950 [backface-visibility:hidden]">
-        <div className="grid h-16 w-16 place-items-center rounded-full border border-[#f5c518]/30 bg-black/35 text-[#f5c518] shadow-ember">
-          <Sparkles size={28} />
-        </div>
-      </div>
-
-      <div className="absolute inset-0 flex rotate-y-180 flex-col p-2 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-        <div className="relative h-40 overflow-hidden rounded-xl border border-white/10 bg-violet-950">
-          {card.imageUrl ? (
-            <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top" />
-          ) : (
-            <div className="grid h-full place-items-center">
-              <span className="font-display text-5xl font-black text-slate-400">{card.name.charAt(0)}</span>
+      <AnimatePresence mode="wait" initial={false}>
+        {revealed ? (
+          <motion.div
+            key="front"
+            className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl p-2"
+            initial={{ opacity: 0, rotateY: -92, scale: 0.92 }}
+            animate={{ opacity: 1, rotateY: 0, scale: 1 }}
+            exit={{ opacity: 0, rotateY: 92, scale: 0.92 }}
+            transition={{ duration: 0.48, ease: 'easeOut' }}
+          >
+            <div className="relative h-40 overflow-hidden rounded-xl border border-white/10 bg-violet-950">
+              {card.imageUrl ? (
+                <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top" />
+              ) : (
+                <div className="grid h-full place-items-center">
+                  <span className="font-display text-5xl font-black text-slate-400">{card.name.charAt(0)}</span>
+                </div>
+              )}
+              <div className="pack-shimmer absolute inset-0" />
             </div>
-          )}
-          <div className="pack-shimmer absolute inset-0" />
-        </div>
-        <div className="mt-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/70">{card.rarity}</p>
-          <h3 className="font-display text-xl font-black leading-tight text-white">{card.name}</h3>
-          <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-            Qty {card.quantity ?? 1}
-          </p>
-        </div>
-      </div>
+            <div className="mt-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/70">{card.rarity}</p>
+              <h3 className="font-display text-xl font-black leading-tight text-white">{card.name}</h3>
+              <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Qty {card.quantity ?? 1}
+              </p>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="back"
+            className="absolute inset-0 grid place-items-center rounded-2xl bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950"
+            initial={{ opacity: 0, rotateY: -92, scale: 0.92 }}
+            animate={{ opacity: 1, rotateY: 0, scale: 1 }}
+            exit={{ opacity: 0, rotateY: 92, scale: 0.92 }}
+            transition={{ duration: 0.35, ease: 'easeIn' }}
+          >
+            <div className="grid h-16 w-16 place-items-center rounded-full border border-[#f5c518]/30 bg-black/35 text-[#f5c518] shadow-ember">
+              <Sparkles size={28} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
