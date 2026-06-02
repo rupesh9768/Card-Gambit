@@ -52,6 +52,11 @@ const cardSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    quantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     imageUrl: {
       type: String,
       default: '',

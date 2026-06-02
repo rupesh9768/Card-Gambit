@@ -85,6 +85,7 @@ export const cards = cardsBySpecies.flatMap((set, speciesIndex) =>
       ability: card.ability,
       rarity: card.rarity,
       collected: card.collected,
+      quantity: card.collected ? 1 : 0,
       imageUrl: card.imageUrl ?? '',
     };
   }),

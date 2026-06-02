@@ -14,11 +14,11 @@ export async function getCards() {
 
 export async function getPlayer() {
   if (!isDatabaseConnected()) {
-    return mockPlayer;
+    return withProgressFields(mockPlayer);
   }
 
   const player = await Player.findOne().sort({ createdAt: 1 });
-  return player ?? mockPlayer;
+  return player ? withProgressFields(toPlain(player)) : withProgressFields(mockPlayer);
 }
 
 export function getRarities() {
@@ -42,10 +42,147 @@ export async function collectCard(cardId) {
 
     if (card) {
       card.collected = true;
+      card.quantity = Math.max(card.quantity ?? 0, 1);
     }
 
     return card;
   }
 
-  return Card.findOneAndUpdate({ gameId: cardId }, { collected: true }, { new: true });
+  return Card.findOneAndUpdate(
+    { gameId: cardId },
+    { $set: { collected: true }, $max: { quantity: 1 } },
+    { new: true },
+  );
+}
+
+export function getXpToNextLevel(level) {
+  return Math.max(1, level) * 100;
+}
+
+export async function applyDuelReward({ userId, result }) {
+  const won = result === 'win';
+  const xpGained = won ? 50 : 20;
+  const coinsGained = won ? 100 : 30;
+  const droppedCard = won && Math.random() < 0.3 ? await dropRandomCard() : null;
+
+  if (!isDatabaseConnected()) {
+    const previousLevel = mockPlayer.level ?? 1;
+    mockPlayer.xp = Number(mockPlayer.xp ?? 0) + xpGained;
+    mockPlayer.coins = Number(mockPlayer.coins ?? 0) + coinsGained;
+    mockPlayer.level = Number(mockPlayer.level ?? 1);
+    applyLevelUps(mockPlayer);
+
+    return buildRewardResponse({
+      xpGained,
+      coinsGained,
+      previousLevel,
+      player: withProgressFields(mockPlayer),
+      droppedCard,
+    });
+  }
+
+  const player = await findRewardPlayer(userId);
+  const previousLevel = player.level ?? 1;
+
+  player.xp = Number(player.xp ?? 0) + xpGained;
+  player.coins = Number(player.coins ?? 0) + coinsGained;
+  player.level = Number(player.level ?? 1);
+  applyLevelUps(player);
+  await player.save();
+
+  return buildRewardResponse({
+    xpGained,
+    coinsGained,
+    previousLevel,
+    player,
+    droppedCard,
+  });
+}
+
+async function findRewardPlayer(userId) {
+  if (userId) {
+    try {
+      const player = await Player.findById(userId);
+
+      if (player) {
+        return player;
+      }
+    } catch {
+      // Fall back to the first player for now; auth will decide user identity later.
+    }
+  }
+
+  const firstPlayer = await Player.findOne().sort({ createdAt: 1 });
+
+  if (firstPlayer) {
+    return firstPlayer;
+  }
+
+  return Player.create(mockPlayer);
+}
+
+async function dropRandomCard() {
+  if (!isDatabaseConnected()) {
+    const card = mockCards[Math.floor(Math.random() * mockCards.length)];
+
+    if (!card) {
+      return null;
+    }
+
+    card.quantity = Number(card.quantity ?? 0) + 1;
+    card.collected = true;
+    return card;
+  }
+
+  const cards = await Card.find();
+  const card = cards[Math.floor(Math.random() * cards.length)];
+
+  if (!card) {
+    return null;
+  }
+
+  card.collected = true;
+  card.quantity = Number(card.quantity ?? 0) + 1;
+  await card.save();
+  return card;
+}
+
+function applyLevelUps(player) {
+  while (player.xp >= getXpToNextLevel(player.level)) {
+    const needed = getXpToNextLevel(player.level);
+    player.level += 1;
+    player.xp -= needed;
+  }
+}
+
+function withProgressFields(player) {
+  return {
+    ...player,
+    xp: Number(player.xp ?? 0),
+    level: Number(player.level ?? 1),
+    coins: Number(player.coins ?? 0),
+    xpToNextLevel: getXpToNextLevel(Number(player.level ?? 1)),
+  };
+}
+
+function buildRewardResponse({ xpGained, coinsGained, previousLevel, player, droppedCard }) {
+  const plainPlayer = toPlain(player);
+  const plainCard = droppedCard ? toPlain(droppedCard) : null;
+  const normalizedPlayer = withProgressFields(plainPlayer);
+
+  return {
+    xpGained,
+    coinsGained,
+    previousLevel,
+    newLevel: normalizedPlayer.level,
+    levelUp: normalizedPlayer.level > previousLevel,
+    xp: normalizedPlayer.xp,
+    xpToNextLevel: normalizedPlayer.xpToNextLevel,
+    player: normalizedPlayer,
+    droppedCard: plainCard,
+  };
+}
+
+function toPlain(document) {
+  return typeof document.toJSON === 'function' ? document.toJSON() : document;
 }

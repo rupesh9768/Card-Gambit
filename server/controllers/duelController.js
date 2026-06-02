@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { getCards } from '../services/gameService.js';
+import { applyDuelReward, getCards } from '../services/gameService.js';
 
 const duels = new Map();
 const maxRounds = 5;
@@ -154,4 +154,19 @@ export function getDuelResult(request, response) {
     score: duel.score,
     round: duel.round,
   });
+}
+
+export async function rewardDuel(request, response, next) {
+  try {
+    const { userId, result } = request.body ?? {};
+
+    if (!['win', 'lose'].includes(result)) {
+      return response.status(400).json({ message: 'Result must be win or lose.' });
+    }
+
+    const reward = await applyDuelReward({ userId, result });
+    return response.json(reward);
+  } catch (error) {
+    next(error);
+  }
 }

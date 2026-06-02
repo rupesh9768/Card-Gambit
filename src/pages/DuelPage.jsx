@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bot, Eye, Flag, Heart, Home, RotateCcw, Shield, Sparkles, Swords, Zap } from 'lucide-react';
-import { getDuelResult, getInventory, playDuelRound, startDuel } from '../lib/api.js';
+import { applyDuelReward, getDuelResult, getInventory, playDuelRound, startDuel } from '../lib/api.js';
 
 const preferredDeckNames = ['Flame Dragon', 'Ice Dragon', 'Dawn Herald', 'Null Wisp', 'Bone Squire'];
 const playablePhases = new Set(['idle', 'selected']);
@@ -24,6 +24,8 @@ export default function DuelPage() {
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [roundResult, setRoundResult] = useState(null);
   const [matchResult, setMatchResult] = useState(null);
+  const [reward, setReward] = useState(null);
+  const [rewardLoading, setRewardLoading] = useState(false);
   const [battlePhase, setBattlePhase] = useState('idle');
   const [roundHistory, setRoundHistory] = useState([]);
   const [timer, setTimer] = useState(30);
@@ -33,6 +35,7 @@ export default function DuelPage() {
   const [error, setError] = useState('');
   const timersRef = useRef([]);
   const audioRef = useRef(null);
+  const rewardClaimedRef = useRef(false);
 
   useEffect(() => {
     createDuel();
@@ -58,6 +61,19 @@ export default function DuelPage() {
     }
   }, [battlePhase, duel?.round, matchResult]);
 
+  useEffect(() => {
+    if (!matchResult || rewardClaimedRef.current) {
+      return;
+    }
+
+    rewardClaimedRef.current = true;
+    setRewardLoading(true);
+    applyDuelReward({ result: matchResult.winner === 'player' ? 'win' : 'lose' })
+      .then(setReward)
+      .catch(() => setReward(null))
+      .finally(() => setRewardLoading(false));
+  }, [matchResult]);
+
   const playerCards = duel?.playerDeck ?? [];
   const aiCards = duel?.aiDeck ?? [];
   const selectedCard = playerCards.find((card) => card.id === selectedCardId);
@@ -74,6 +90,9 @@ export default function DuelPage() {
     setSelectedCardId(null);
     setRoundResult(null);
     setMatchResult(null);
+    setReward(null);
+    setRewardLoading(false);
+    rewardClaimedRef.current = false;
     setBattlePhase('idle');
     setRoundHistory([]);
     setTimer(30);
@@ -348,6 +367,8 @@ export default function DuelPage() {
             loading={loading && !duel}
             error={error}
             matchResult={matchResult}
+            reward={reward}
+            rewardLoading={rewardLoading}
             history={roundHistory}
             onRestart={createDuel}
           />
@@ -651,7 +672,7 @@ function CardTooltip({ card }) {
   );
 }
 
-function EndOverlay({ loading, error, matchResult, history, onRestart }) {
+function EndOverlay({ loading, error, matchResult, reward, rewardLoading, history, onRestart }) {
   const won = matchResult?.winner === 'player';
   const title = loading ? 'Starting Duel' : error || (won ? 'VICTORY' : 'DEFEATED');
 
@@ -687,6 +708,7 @@ function EndOverlay({ loading, error, matchResult, history, onRestart }) {
             <p className="mt-3 text-sm font-black uppercase tracking-[0.2em] text-slate-300">
               Final Score {history.at(-1)?.score?.player ?? 0} - {history.at(-1)?.score?.ai ?? 0}
             </p>
+            <RewardPanel reward={reward} loading={rewardLoading} />
             <div className="mt-5 grid gap-2">
               {history.map((round) => (
                 <div key={round.round} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.045] px-4 py-2 text-sm">
@@ -718,6 +740,83 @@ function EndOverlay({ loading, error, matchResult, history, onRestart }) {
           </>
         )}
       </motion.div>
+    </motion.div>
+  );
+}
+
+function RewardPanel({ reward, loading }) {
+  if (loading) {
+    return (
+      <div className="mt-5 rounded-2xl border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-4 text-sm font-black uppercase tracking-[0.18em] text-[#f5c518]">
+        Claiming rewards...
+      </div>
+    );
+  }
+
+  if (!reward) {
+    return (
+      <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4 text-sm text-slate-300">
+        Rewards will appear after the arena reports the result.
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      className="mt-5 rounded-2xl border border-[#f5c518]/25 bg-white/[0.055] p-4 text-left shadow-ember"
+      initial={{ opacity: 0, scale: 0.94, y: 12 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+    >
+      <div className="grid gap-3 sm:grid-cols-3">
+        <RewardStat label="XP Gained" value={`+${reward.xpGained}`} />
+        <RewardStat label="Coins" value={`+${reward.coinsGained}`} />
+        <RewardStat label="Level" value={reward.newLevel} pulse={reward.levelUp} />
+      </div>
+      {reward.levelUp && (
+        <motion.p
+          className="mt-3 rounded-xl border border-[#f5c518]/35 bg-[#f5c518]/12 px-4 py-2 text-center text-xs font-black uppercase tracking-[0.18em] text-[#f5c518] shadow-ember"
+          animate={{ scale: [1, 1.04, 1] }}
+          transition={{ duration: 0.8, repeat: Infinity }}
+        >
+          Level Up
+        </motion.p>
+      )}
+      {reward.droppedCard && (
+        <motion.div
+          className="mt-4 flex items-center gap-3 rounded-2xl border border-cyan-300/30 bg-cyan-400/10 p-3"
+          initial={{ opacity: 0, scale: 0.82 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+        >
+          <div className="grid h-16 w-12 place-items-center overflow-hidden rounded-lg border border-[#f5c518]/40 bg-slate-950">
+            {reward.droppedCard.imageUrl ? (
+              <img src={reward.droppedCard.imageUrl} alt={reward.droppedCard.name} className="h-full w-full object-cover object-top" />
+            ) : (
+              <span className="font-display text-2xl font-black text-cyan-100">{reward.droppedCard.name.charAt(0)}</span>
+            )}
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">Card Drop</p>
+            <p className="font-display text-lg font-black text-white">{reward.droppedCard.name}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+              Quantity {reward.droppedCard.quantity ?? 1}
+            </p>
+          </div>
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+function RewardStat({ label, value, pulse = false }) {
+  return (
+    <motion.div
+      className="rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-center"
+      animate={pulse ? { boxShadow: ['0 0 0 rgba(245,197,24,0)', '0 0 24px rgba(245,197,24,0.45)', '0 0 0 rgba(245,197,24,0)'] } : undefined}
+      transition={{ duration: 1, repeat: pulse ? Infinity : 0 }}
+    >
+      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
+      <p className="mt-1 font-display text-xl font-black text-[#f5c518]">{value}</p>
     </motion.div>
   );
 }

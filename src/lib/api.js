@@ -48,3 +48,10 @@ export function playDuelRound(duelId, selectedCardId) {
 export function getDuelResult(duelId) {
   return request(`/api/duel/result?duelId=${encodeURIComponent(duelId)}`);
 }
+
+export function applyDuelReward({ userId, result }) {
+  return request('/api/duel/reward', {
+    method: 'POST',
+    body: JSON.stringify({ userId, result }),
+  });
+}

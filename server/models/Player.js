@@ -12,6 +12,11 @@ const playerSchema = new mongoose.Schema(
       default: 'Novice Battler',
       trim: true,
     },
+    xp: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     level: {
       type: Number,
       default: 1,

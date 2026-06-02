@@ -1,11 +1,17 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bot, ChevronRight, Coins, Gem, LibraryBig, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
+import { getDashboard } from '../lib/api.js';
 
-const player = {
+const fallbackPlayer = {
   name: 'NYRA',
+  username: 'NYRA',
   rank: 'Novice Battler',
+  title: 'Novice Battler',
   level: 27,
+  xp: 0,
+  xpToNextLevel: 2700,
   coins: 12850,
   cards: '8/14',
 };
@@ -59,6 +65,14 @@ const cardGhosts = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [dashboard, setDashboard] = useState(null);
+
+  useEffect(() => {
+    getDashboard().then(setDashboard).catch(() => setDashboard(null));
+  }, []);
+
+  const livePlayer = dashboard?.player ?? fallbackPlayer;
+  const collection = dashboard?.collection;
 
   function handleBattle(mode) {
     if (mode === 'ai') {
@@ -127,7 +141,7 @@ export default function Dashboard() {
         </motion.header>
 
         <section className="grid min-h-0 flex-1 grid-cols-1 gap-5 py-5 lg:grid-cols-[0.9fr_1.35fr]">
-          <PlayerProfile />
+          <PlayerProfile player={livePlayer} collection={collection} />
           <ArenaGate onBattle={handleBattle} />
         </section>
       </div>
@@ -135,7 +149,15 @@ export default function Dashboard() {
   );
 }
 
-function PlayerProfile() {
+function PlayerProfile({ player, collection }) {
+  const name = (player.username ?? player.name ?? 'NYRA').toUpperCase();
+  const rank = player.title ?? player.rank ?? 'Novice Battler';
+  const level = player.level ?? 1;
+  const xp = player.xp ?? 0;
+  const xpToNextLevel = player.xpToNextLevel ?? level * 100;
+  const xpPercent = Math.min(100, Math.round((xp / xpToNextLevel) * 100));
+  const cardCount = collection ? `${collection.collected}/${collection.total}` : player.cards;
+
   return (
     <motion.aside
       className="lobby-glass relative min-h-0 overflow-hidden rounded-3xl p-5"
@@ -153,24 +175,26 @@ function PlayerProfile() {
         </div>
 
         <div className="min-w-0">
-          <h1 className="lobby-title-glow font-display text-5xl font-black leading-none text-white">{player.name}</h1>
-          <p className="mt-2 text-sm font-black uppercase tracking-[0.22em] text-cyan-100/80">{player.rank}</p>
+          <h1 className="lobby-title-glow font-display text-5xl font-black leading-none text-white">{name}</h1>
+          <p className="mt-2 text-sm font-black uppercase tracking-[0.22em] text-cyan-100/80">{rank}</p>
           <div className="mt-4 h-3 overflow-hidden rounded-full border border-[#f5c518]/30 bg-black/35">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[#f5c518] via-cyan-300 to-violet-400"
               initial={{ width: '0%' }}
-              animate={{ width: '68%' }}
+              animate={{ width: `${xpPercent}%` }}
               transition={{ delay: 0.45, duration: 0.9, ease: 'easeOut' }}
             />
           </div>
-          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Rank progress 68%</p>
+          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+            XP {xp} / {xpToNextLevel}
+          </p>
         </div>
       </div>
 
       <div className="relative mt-6 grid grid-cols-3 gap-3">
-        <StatTile icon={Trophy} label="Level" value={player.level} tone="text-violet-200" />
-        <StatTile icon={Coins} label="Coins" value={player.coins.toLocaleString()} tone="text-[#f5c518]" />
-        <StatTile icon={LibraryBig} label="Cards" value={player.cards} tone="text-cyan-200" badge="8 of 14 collected" />
+        <StatTile icon={Trophy} label="Level" value={level} tone="text-violet-200" />
+        <StatTile icon={Coins} label="Coins" value={Number(player.coins ?? 0).toLocaleString()} tone="text-[#f5c518]" />
+        <StatTile icon={LibraryBig} label="Cards" value={cardCount} tone="text-cyan-200" badge={`${cardCount} collected`} />
       </div>
     </motion.aside>
   );
