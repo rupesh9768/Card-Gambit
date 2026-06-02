@@ -67,6 +67,13 @@ export default function BattleDeck() {
   }
 
   function replaceSlot(card) {
+    if (!card.collected) {
+      setError('Locked cards cannot be placed in the battle deck.');
+      return;
+    }
+
+    setError('');
+
     if (deckIds.length < maxDeckSize) {
       setDeckIds((current) => [...current, card.id]);
       setSelectedSlot(deckIds.length);

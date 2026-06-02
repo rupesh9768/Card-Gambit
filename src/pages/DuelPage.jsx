@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bot, Eye, Flag, Heart, Home, RotateCcw, Shield, Sparkles, Swords, Zap } from 'lucide-react';
 import { applyDuelReward, getDuelResult, getInventory, playDuelRound, startDuel } from '../lib/api.js';
 
-const preferredDeckNames = ['Flame Dragon', 'Ice Dragon', 'Dawn Herald', 'Null Wisp', 'Bone Squire'];
+const preferredDeckNames = ['Flame Tyrant', 'Frost Wyrm', 'Solar Aegis', 'Abyss Walker', 'Bone Reaper'];
 const playablePhases = new Set(['idle', 'selected']);
 const sparks = Array.from({ length: 32 }, (_, index) => ({
   left: `${(index * 31) % 100}%`,
@@ -897,11 +897,21 @@ function getWinnerText(winner) {
 
 function getLore(card) {
   const lore = {
-    'Flame Dragon': 'A volcanic dragon whose wings leave burning sigils in the night sky.',
-    'Ice Dragon': 'A glacial wyrm that freezes the battlefield before striking.',
-    'Dawn Herald': 'A radiant envoy carrying the first light of a forgotten god.',
-    'Null Wisp': 'A silent entity that slips between worlds and phases through attacks.',
-    'Bone Squire': 'A loyal undead guard bound to an ancient battlefield oath.',
+    'Flame Tyrant': 'A volcanic dragon ruler whose wings leave burning sigils in the night sky.',
+    'Frost Wyrm': 'A glacial wyrm that freezes the battlefield before striking.',
+    'Iron Vanguard': 'A steel-hearted frontline fighter who refuses to yield ground.',
+    'Shadow Duelist': 'A masked blade master who strikes from the edge of torchlight.',
+    'Cave Gnarl': 'A brutal cave-born monster with a bite strong enough to crack armor.',
+    'Bloodfang Beast': 'A frenzied predator that hunts by the scent of fear.',
+    'Solar Aegis': 'A sun-crowned guardian whose shield turns judgment into light.',
+    'Void Oracle': 'A starless prophet that reads fate in the silence between worlds.',
+    'Abyss Walker': 'A silent entity that steps through the deep void between worlds.',
+    'Mind Fracture': 'A psychic horror that splinters courage before the first strike.',
+    'Bone Reaper': 'A grave-bound executioner whose blade gathers restless souls.',
+    'Grave Thorn': 'An undead stalker that roots enemies in cursed burial soil.',
+    'Arcane Nox': 'A young spellcaster who threads blue fire through ancient runes.',
+    'Storm Sage': 'A weather-bound wizard who calls thunder down like a verdict.',
+    Brucklin: 'The rarest unknown force in Card Gambit, wrapped in unstable power.',
   };
 
   return lore[card.name] ?? `${card.race} card with ${card.ability}.`;

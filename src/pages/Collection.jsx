@@ -33,7 +33,7 @@ export default function Collection() {
           <p className="text-sm font-black uppercase tracking-[0.24em] text-cyan-200/80">Player Inventory</p>
           <h1 className="lobby-title-glow mt-2 font-display text-4xl font-black text-slate-50 sm:text-5xl">Collected Cards</h1>
           <p className="mt-2 text-sm text-slate-400">
-            {collectedCount} / {totalCount} unlocked. Locked cards reveal when collected.
+            {collectedCount} / {totalCount} unlocked. Locked cards show their art, then reveal details when collected.
           </p>
           {error && <p className="mt-2 text-sm font-semibold text-rose-200">{error}</p>}
         </div>

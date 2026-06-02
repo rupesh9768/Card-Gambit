@@ -1,19 +1,9 @@
 import crypto from 'node:crypto';
 import { applyDuelReward, getCards } from '../services/gameService.js';
+import { calculateRating } from '../utils/cardRating.js';
 
 const duels = new Map();
 const maxRounds = 5;
-const rarityBonus = {
-  Common: 0,
-  Rare: 10,
-  Epic: 20,
-  Legendary: 30,
-  Unknown: 50,
-};
-
-function calculateRating(card) {
-  return Math.min(100, card.attack + card.defense + card.health + (rarityBonus[card.rarity] ?? 0));
-}
 
 function drawRandomCards(cards, count) {
   const shuffled = [...cards].sort(() => Math.random() - 0.5);
@@ -64,6 +54,19 @@ export async function startDuel(request, response, next) {
     }
 
     const allCards = (await getCards()).map(toPlainCard);
+    const selectedIds = playerDeck.slice(0, maxRounds).map((card) => card.id);
+    const selectedPlayerDeck = selectedIds.map((id) => allCards.find((card) => card.id === id));
+    const hasMissingCard = selectedPlayerDeck.some((card) => !card);
+    const hasLockedCard = selectedPlayerDeck.some((card) => card && !card.collected);
+
+    if (hasMissingCard) {
+      return response.status(400).json({ message: 'Player deck contains an unknown card.' });
+    }
+
+    if (hasLockedCard) {
+      return response.status(403).json({ message: 'Locked cards cannot be used in the battle deck.' });
+    }
+
     const aiDeck = drawRandomCards(allCards, maxRounds);
 
     if (aiDeck.length < maxRounds) {
@@ -72,7 +75,7 @@ export async function startDuel(request, response, next) {
 
     const duel = {
       duelId: crypto.randomUUID(),
-      playerDeck: playerDeck.slice(0, maxRounds).map((card) => ({ ...toPlainCard(card), used: false })),
+      playerDeck: selectedPlayerDeck.map((card) => ({ ...card, used: false })),
       aiDeck: aiDeck.map((card) => ({ ...card, used: false })),
       usedPlayerCards: [],
       usedAiCards: [],

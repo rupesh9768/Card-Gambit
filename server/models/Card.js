@@ -43,6 +43,12 @@ const cardSchema = new mongoose.Schema(
       default: 1,
       min: 1,
     },
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
     ability: {
       type: String,
       default: '',

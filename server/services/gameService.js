@@ -3,13 +3,15 @@ import { player as mockPlayer } from '../data/player.js';
 import { isDatabaseConnected } from '../db.js';
 import { Card } from '../models/Card.js';
 import { Player } from '../models/Player.js';
+import { calculateRating } from '../utils/cardRating.js';
 
 export async function getCards() {
   if (!isDatabaseConnected()) {
-    return mockCards;
+    return mockCards.map(withRating);
   }
 
-  return Card.find().sort({ gameId: 1 });
+  const cards = await Card.find().sort({ gameId: 1 });
+  return cards.map(toPlain);
 }
 
 export async function getPlayer() {
@@ -283,5 +285,12 @@ function buildRewardResponse({ xpGained, coinsGained, previousLevel, player, dro
 }
 
 function toPlain(document) {
-  return typeof document.toJSON === 'function' ? document.toJSON() : document;
+  return withRating(typeof document.toJSON === 'function' ? document.toJSON() : document);
+}
+
+function withRating(card) {
+  return {
+    ...card,
+    rating: calculateRating(card),
+  };
 }

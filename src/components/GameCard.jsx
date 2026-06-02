@@ -62,7 +62,9 @@ export default function GameCard({ card, size = 'normal' }) {
       onClick={handleClick}
       disabled={!collected}
       className={`group ${currentSize.card} w-full rounded-xl text-left transition duration-300 [perspective:1200px] ${
-        collected ? `cursor-pointer hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] ${styles.glow}` : 'cursor-not-allowed opacity-55 grayscale transition hover:opacity-65'
+        collected
+          ? `cursor-pointer hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] ${styles.glow}`
+          : `cursor-not-allowed hover:-translate-y-1 hover:scale-[1.01] ${styles.glow}`
       }`}
       aria-label={collected ? `${card.name} card` : 'Locked card'}
     >
@@ -83,18 +85,20 @@ function CardFront({ card, styles, collected, sizeStyles }) {
     <div className={`absolute inset-0 overflow-hidden rounded-xl border ${styles.border} bg-slate-950/90 p-4 shadow-xl shadow-black/35 backdrop-blur [backface-visibility:hidden]`}>
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-70" />
       <div className="mb-3 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
-        <span>{collected ? card.species : 'Unknown'}</span>
+        <span>{card.species}</span>
         <span>{collected ? card.ability : 'Hidden'}</span>
       </div>
 
       <div className={`relative grid ${sizeStyles.art} place-items-center overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br ${styles.art}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.15),transparent_34%)]" />
         <div className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition group-hover:translate-x-[320%] group-hover:opacity-100 group-hover:duration-700" />
-        {collected && card.imageUrl ? (
+        {card.imageUrl ? (
           <img
             src={card.imageUrl}
             alt={card.name}
-            className="h-full w-full object-cover object-top transition duration-500 group-hover:scale-105"
+            className={`h-full w-full object-cover object-top transition duration-500 group-hover:scale-105 ${
+              collected ? '' : 'brightness-75 saturate-75'
+            }`}
           />
         ) : collected ? (
           <div className={`rune-ring grid ${sizeStyles.icon} place-items-center rounded-full animate-pulseGlow`}>
@@ -105,15 +109,27 @@ function CardFront({ card, styles, collected, sizeStyles }) {
             <Lock className="text-slate-500" size={34} />
           </div>
         )}
+        {!collected && (
+          <div className="absolute inset-0 grid place-items-center bg-gradient-to-b from-black/10 via-black/28 to-black/70">
+            <div className="grid place-items-center gap-3">
+              <span className="grid h-16 w-16 place-items-center rounded-full border border-white/15 bg-black/55 shadow-[0_0_28px_rgba(0,0,0,0.7)] backdrop-blur">
+                <Lock className="text-slate-100" size={28} />
+              </span>
+              <span className="rounded-full border border-white/15 bg-black/55 px-4 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-100 backdrop-blur">
+                Locked
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex items-start justify-between gap-3">
         <div>
           <h3 className={`font-display ${sizeStyles.title} font-bold leading-tight text-slate-50`}>
-            {collected ? card.name : 'Locked Card'}
+            {card.name}
           </h3>
           <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            {collected ? card.race : 'Not Collected'}
+            {collected ? card.race : `${card.race} / Not Collected`}
           </p>
         </div>
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ring-1 ${styles.badge}`}>
@@ -122,7 +138,7 @@ function CardFront({ card, styles, collected, sizeStyles }) {
       </div>
 
       <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-        {collected ? 'Click to flip' : 'Find this card to unlock it'}
+        {collected ? 'Click to flip' : 'Collect this card to unlock details'}
       </p>
     </div>
   );
