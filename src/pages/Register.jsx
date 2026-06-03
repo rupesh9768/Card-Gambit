@@ -4,10 +4,9 @@ import { motion } from 'framer-motion';
 import { UserPlus } from 'lucide-react';
 import { AuthInput, AuthScreen } from './Login.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { registerUser } from '../lib/api.js';
 
 export default function Register() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState('');
@@ -23,8 +22,8 @@ export default function Register() {
     setError('');
 
     try {
-      await registerUser(form);
-      navigate('/login', { replace: true });
+      await register(form);
+      navigate('/starter-pack', { replace: true });
     } catch (requestError) {
       setError(requestError.message);
     } finally {

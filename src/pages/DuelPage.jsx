@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bot, Eye, Flag, Heart, Home, RotateCcw, Shield, Sparkles, Swords, Zap } from 'lucide-react';
 import { applyDuelReward, getDuelResult, getInventory, playDuelRound, startDuel } from '../lib/api.js';
@@ -26,6 +26,7 @@ const ghosts = [
 ];
 
 export default function DuelPage() {
+  const [searchParams] = useSearchParams();
   const [duel, setDuel] = useState(null);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [selectedStance, setSelectedStance] = useState('attack');
@@ -85,6 +86,7 @@ export default function DuelPage() {
   const playerCards = duel?.playerDeck ?? [];
   const aiCards = duel?.aiDeck ?? [];
   const selectedCard = playerCards.find((card) => card.id === selectedCardId);
+  const tutorial = searchParams.get('tutorial') === 'true' && !matchResult;
   const score = duel?.score ?? { player: 0, ai: 0 };
   const currentRound = Math.min(duel?.round ?? 1, 5);
   const canSelect = duel && !matchResult && !loading && playablePhases.has(battlePhase);
@@ -362,6 +364,7 @@ export default function DuelPage() {
               showDamage={battlePhase === 'result' && roundResult}
             />
           </div>
+          {tutorial && <TutorialHint phase={battlePhase} selected={Boolean(selectedCard)} roundResult={roundResult} />}
         </section>
 
         <section className="flex h-[28vh] min-h-0 shrink-0 flex-col items-center justify-center gap-2 overflow-visible px-2">
@@ -656,6 +659,33 @@ function ClashCenter({ canClash, selected, phase, timer, result, matchResult, on
   );
 }
 
+function TutorialHint({ phase, selected, roundResult }) {
+  let title = 'Choose Your First Card';
+  let text = 'Pick one card from your hand. Used cards cannot be played again, so every choice matters.';
+
+  if (selected && phase === 'selected') {
+    title = 'Choose a Stance';
+    text = 'Attack boosts damage, Guard protects your remaining HP, and Focus strengthens species abilities. Then press Clash.';
+  }
+
+  if (['impact', 'result'].includes(phase) && roundResult) {
+    title = 'Read the Clash';
+    text = 'Both cards strike at once. The round score is based on remaining HP after damage and ability effects.';
+  }
+
+  return (
+    <motion.div
+      className="absolute bottom-4 left-1/2 z-30 w-[min(90%,28rem)] -translate-x-1/2 rounded-2xl border border-[#f5c518]/35 bg-black/55 px-4 py-3 text-center shadow-ember backdrop-blur-xl"
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35 }}
+    >
+      <p className="font-display text-lg font-black uppercase text-[#f5c518] battle-stage-title">{title}</p>
+      <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{text}</p>
+    </motion.div>
+  );
+}
+
 function HandCard({ card, index, selected, disabled, onClick, onHover }) {
   const rotation = (index - 2) * 2;
 
@@ -885,6 +915,18 @@ function RewardPanel({ reward, loading }) {
             </span>
           )}
         </div>
+      )}
+      {reward.firstDuelBonus?.active && (
+        <motion.div
+          className="mt-3 rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-4 py-3 text-center"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <p className="font-display text-lg font-black uppercase text-cyan-100">{reward.firstDuelBonus.label}</p>
+          <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-300">
+            Bonus +{reward.firstDuelBonus.xp} XP / +{reward.firstDuelBonus.coins} coins
+          </p>
+        </motion.div>
       )}
       {reward.levelUp && (
         <motion.p

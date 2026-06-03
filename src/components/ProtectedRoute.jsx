@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -18,6 +18,14 @@ export default function ProtectedRoute({ children }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (user?.needsStarterPack && location.pathname !== '/starter-pack') {
+    return <Navigate to="/starter-pack" replace />;
+  }
+
+  if (!user?.needsStarterPack && location.pathname === '/starter-pack') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;

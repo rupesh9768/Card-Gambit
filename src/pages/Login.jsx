@@ -23,8 +23,8 @@ export default function Login() {
     setError('');
 
     try {
-      await login(form);
-      navigate(redirectTo, { replace: true });
+      const user = await login(form);
+      navigate(user.needsStarterPack ? '/starter-pack' : redirectTo, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
     } finally {

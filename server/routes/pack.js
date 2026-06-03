@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { openPack } from '../controllers/packController.js';
+import { openPack, openStarter } from '../controllers/packController.js';
 
 const router = Router();
 
 router.post('/open', openPack);
+router.post('/starter', openStarter);
 
 export default router;

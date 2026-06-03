@@ -110,3 +110,9 @@ export function openPack(userId, packType = 'standard') {
     body: JSON.stringify({ userId, packType }),
   });
 }
+
+export function openStarterPack() {
+  return request('/api/pack/starter', {
+    method: 'POST',
+  });
+}

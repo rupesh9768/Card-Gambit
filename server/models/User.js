@@ -113,6 +113,22 @@ const userSchema = new mongoose.Schema(
       type: [Number],
       default: [],
     },
+    starterPackOpened: {
+      type: Boolean,
+      default: false,
+    },
+    starterPackOpenedAt: {
+      type: Date,
+      default: null,
+    },
+    firstDuelCompleted: {
+      type: Boolean,
+      default: false,
+    },
+    firstDuelCompletedAt: {
+      type: Date,
+      default: null,
+    },
     winStreak: {
       type: Number,
       default: 0,

@@ -1,26 +1,18 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { cards } from '../data/cards.js';
 import { getJwtSecret } from '../middleware/authMiddleware.js';
 import { User } from '../models/User.js';
 import { getXpToNextLevel } from '../services/gameService.js';
 
 const tokenExpiry = '7d';
 
-function createStarterCards() {
-  return cards
-    .filter((card) => card.collected)
-    .map((card) => ({
-      cardId: card.id,
-      quantity: Math.max(card.quantity ?? 1, 1),
-    }));
-}
-
 function signToken(user) {
   return jwt.sign({ userId: user.id }, getJwtSecret(), { expiresIn: tokenExpiry });
 }
 
 function serializeAuthUser(user) {
+  const hasOwnedCards = (user.cards ?? []).some((card) => Number(card.quantity ?? 0) > 0);
+
   return {
     id: user.id,
     username: user.username,
@@ -29,6 +21,9 @@ function serializeAuthUser(user) {
     xp: Number(user.xp ?? 0),
     xpToNextLevel: getXpToNextLevel(Number(user.level ?? 1)),
     coins: Number(user.coins ?? 0),
+    starterPackOpened: Boolean(user.starterPackOpened),
+    needsStarterPack: !user.starterPackOpened && !hasOwnedCards,
+    firstDuelCompleted: Boolean(user.firstDuelCompleted),
   };
 }
 
@@ -57,11 +52,13 @@ export async function register(request, response, next) {
       username,
       email,
       password: hashedPassword,
-      cards: createStarterCards(),
+      cards: [],
+      deck: [],
     });
 
     return response.status(201).json({
       message: 'Account created.',
+      token: signToken(user),
       user: serializeAuthUser(user),
     });
   } catch (error) {

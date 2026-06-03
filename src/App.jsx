@@ -5,6 +5,7 @@ import Collection from './pages/Collection.jsx';
 import BattleDeck from './pages/BattleDeck.jsx';
 import DuelPage from './pages/DuelPage.jsx';
 import PacksPage from './pages/PacksPage.jsx';
+import StarterPackPage from './pages/StarterPackPage.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -20,6 +21,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/dashboard" element={protectedPage(<Dashboard />)} />
+      <Route path="/starter-pack" element={protectedPage(<StarterPackPage />)} />
       <Route path="/lobby" element={<Navigate to="/dashboard" replace />} />
       <Route path="/inventory" element={protectedPage(<Collection />)} />
       <Route path="/collection" element={<Navigate to="/inventory" replace />} />

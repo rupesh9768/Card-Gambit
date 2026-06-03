@@ -108,6 +108,8 @@ const achievementTemplates = [
   },
 ];
 
+const starterCardNames = ['Iron Vanguard', 'Cave Gnarl', 'Shadow Duelist', 'Arcane Nox', 'Frost Wyrm'];
+
 export async function getCards(user = null) {
   if (!isDatabaseConnected()) {
     return mergeUserCards(mockCards.map(withRating), user);
@@ -179,20 +181,71 @@ export function getXpToNextLevel(level) {
   return Math.max(1, level) * 100;
 }
 
+export async function openStarterPack({ user }) {
+  if (!user) {
+    const error = new Error('Starter pack requires a player account.');
+    error.status = 401;
+    throw error;
+  }
+
+  if (user.starterPackOpened) {
+    const error = new Error('Starter pack has already been opened.');
+    error.status = 409;
+    throw error;
+  }
+
+  const starterCards = await getStarterCards();
+
+  if (starterCards.length < starterCardNames.length) {
+    const error = new Error('Starter card pool is not ready.');
+    error.status = 500;
+    throw error;
+  }
+
+  const openedCards = [];
+
+  for (const card of starterCards) {
+    const plainCard = toPlainCard(card);
+    const ownedCard = incrementUserCard(user, plainCard.id ?? plainCard.gameId);
+    openedCards.push({
+      ...plainCard,
+      collected: true,
+      quantity: ownedCard.quantity,
+      starter: true,
+    });
+  }
+
+  user.deck = openedCards.map((card) => card.id);
+  user.starterPackOpened = true;
+  user.starterPackOpenedAt = new Date();
+  await saveMutablePlayer(user);
+
+  return {
+    packType: 'Starter Pack',
+    cards: openedCards,
+    deck: user.deck,
+    message: 'Starter Battle Deck Created',
+  };
+}
+
 export async function applyDuelReward({ user, userId, result }) {
   const won = result === 'win';
-  const xpGained = won ? 60 : 25;
-  const baseCoins = won ? 90 : 35;
+  let xpGained = won ? 60 : 25;
+  let baseCoins = won ? 90 : 35;
   const rewardUser = user ?? (isDatabaseConnected() ? await findRewardPlayer(userId) : null);
 
   if (!isDatabaseConnected()) {
     const previousLevel = mockPlayer.level ?? 1;
     applyDuelStats(mockPlayer, won);
+    const firstDuelBonus = applyFirstDuelBonus(mockPlayer, won);
+    xpGained += firstDuelBonus.xp;
+    baseCoins += firstDuelBonus.coins;
     const streakBonus = getWinStreakBonus(mockPlayer, won);
     mockPlayer.coins = Number(mockPlayer.coins ?? 0) + baseCoins + streakBonus;
     mockPlayer.level = Number(mockPlayer.level ?? 1);
     mockPlayer.xp = Number(mockPlayer.xp ?? 0) + xpGained;
-    const droppedCard = await rollDuelDrop(mockPlayer, won);
+    const droppedCard = (firstDuelBonus.active ? await dropRandomCard(mockPlayer, { preferUnowned: true, minimumRarity: won ? 'Rare' : 'Common' }) : null)
+      ?? await rollDuelDrop(mockPlayer, won);
     const questRewards = applyQuestProgress(mockPlayer, won ? ['duel', 'win'] : ['duel']);
     const achievementRewards = applyAchievements(mockPlayer);
     const levelUnlocks = applyLevelUps(mockPlayer);
@@ -208,14 +261,19 @@ export async function applyDuelReward({ user, userId, result }) {
       achievementRewards,
       levelUnlocks,
       dropPity: mockPlayer.duelDropPity,
+      firstDuelBonus,
     });
   }
 
   const player = rewardUser;
   const previousLevel = player.level ?? 1;
   applyDuelStats(player, won);
+  const firstDuelBonus = applyFirstDuelBonus(player, won);
+  xpGained += firstDuelBonus.xp;
+  baseCoins += firstDuelBonus.coins;
   const streakBonus = getWinStreakBonus(player, won);
-  const droppedCard = await rollDuelDrop(player, won);
+  const droppedCard = (firstDuelBonus.active ? await dropRandomCard(player, { preferUnowned: true, minimumRarity: won ? 'Rare' : 'Common' }) : null)
+    ?? await rollDuelDrop(player, won);
 
   player.xp = Number(player.xp ?? 0) + xpGained;
   player.coins = Number(player.coins ?? 0) + baseCoins + streakBonus;
@@ -236,6 +294,7 @@ export async function applyDuelReward({ user, userId, result }) {
     achievementRewards,
     levelUnlocks,
     dropPity: player.duelDropPity,
+    firstDuelBonus,
   });
 }
 
@@ -374,6 +433,11 @@ async function getCardsForDrop() {
   }
 
   return Card.find();
+}
+
+async function getStarterCards() {
+  const cards = isDatabaseConnected() ? await Card.find({ name: { $in: starterCardNames } }) : mockCards.filter((card) => starterCardNames.includes(card.name));
+  return starterCardNames.map((name) => cards.find((card) => card.name === name)).filter(Boolean);
 }
 
 async function incrementCardQuantity(card, user = null) {
@@ -540,6 +604,27 @@ function applyDuelStats(player, won) {
   player.winStreak = 0;
 }
 
+function applyFirstDuelBonus(player, won) {
+  if (player.firstDuelCompleted) {
+    return {
+      active: false,
+      xp: 0,
+      coins: 0,
+      label: '',
+    };
+  }
+
+  player.firstDuelCompleted = true;
+  player.firstDuelCompletedAt = new Date();
+
+  return {
+    active: true,
+    xp: won ? 100 : 80,
+    coins: won ? 150 : 100,
+    label: won ? 'First Victory' : 'First Trial Complete',
+  };
+}
+
 function getWinStreakBonus(player, won) {
   if (!won) {
     return 0;
@@ -672,6 +757,10 @@ function withProgressFields(player) {
     totalLosses: Number(player.totalLosses ?? 0),
     totalPacksOpened: Number(player.totalPacksOpened ?? 0),
     duelDropPity: Number(player.duelDropPity ?? 0),
+    starterPackOpened: Boolean(player.starterPackOpened) || countUniqueOwnedCards(player) > 0,
+    needsStarterPack: !player.starterPackOpened && countUniqueOwnedCards(player) === 0,
+    firstDuelCompleted: Boolean(player.firstDuelCompleted),
+    deck: player.deck ?? [],
     packPity: getPackPity(player),
     dailyQuests: (player.dailyQuests ?? []).map(normalizeQuest),
     achievements: achievementTemplates.map((achievement) => ({
@@ -697,6 +786,7 @@ function buildRewardResponse({
   achievementRewards = [],
   levelUnlocks = [],
   dropPity = 0,
+  firstDuelBonus = null,
 }) {
   const plainPlayer = toPlain(player);
   const plainCard = droppedCard ? toPlainCard(droppedCard) : null;
@@ -717,6 +807,7 @@ function buildRewardResponse({
     achievementRewards,
     levelUnlocks,
     dropPity,
+    firstDuelBonus,
   };
 }
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { clearStoredToken, getCurrentUser, getStoredToken, loginUser, setStoredToken } from '../lib/api.js';
+import { clearStoredToken, getCurrentUser, getStoredToken, loginUser, registerUser, setStoredToken } from '../lib/api.js';
 
 const AuthContext = createContext(null);
 
@@ -50,6 +50,20 @@ export function AuthProvider({ children }) {
     return data.user;
   }
 
+  async function register(credentials) {
+    const data = await registerUser(credentials);
+    setStoredToken(data.token);
+    setToken(data.token);
+    setUser(data.user);
+    return data.user;
+  }
+
+  async function refreshUser() {
+    const data = await getCurrentUser();
+    setUser(data.user);
+    return data.user;
+  }
+
   function logout() {
     clearStoredToken();
     setToken(null);
@@ -63,6 +77,8 @@ export function AuthProvider({ children }) {
       loading,
       isAuthenticated: Boolean(token),
       login,
+      register,
+      refreshUser,
       logout,
     }),
     [token, user, loading],
