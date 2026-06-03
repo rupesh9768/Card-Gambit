@@ -6,6 +6,12 @@ import { applyDuelReward, getDuelResult, getInventory, playDuelRound, startDuel 
 
 const preferredDeckNames = ['Flame Tyrant', 'Frost Wyrm', 'Solar Aegis', 'Abyss Walker', 'Bone Reaper'];
 const playablePhases = new Set(['idle', 'selected']);
+const stanceOptions = [
+  { id: 'attack', label: 'Attack', icon: Swords, note: '+ATK' },
+  { id: 'guard', label: 'Guard', icon: Shield, note: '+DEF' },
+  { id: 'focus', label: 'Focus', icon: Zap, note: '+Ability' },
+];
+const difficultyOptions = ['easy', 'medium', 'hard'];
 const sparks = Array.from({ length: 32 }, (_, index) => ({
   left: `${(index * 31) % 100}%`,
   bottom: `${(index * 17) % 92}%`,
@@ -22,6 +28,8 @@ const ghosts = [
 export default function DuelPage() {
   const [duel, setDuel] = useState(null);
   const [selectedCardId, setSelectedCardId] = useState(null);
+  const [selectedStance, setSelectedStance] = useState('attack');
+  const [aiDifficulty, setAiDifficulty] = useState(() => localStorage.getItem('card-gambit-ai-difficulty') ?? 'medium');
   const [roundResult, setRoundResult] = useState(null);
   const [matchResult, setMatchResult] = useState(null);
   const [reward, setReward] = useState(null);
@@ -108,7 +116,7 @@ export default function DuelPage() {
         return;
       }
 
-      const nextDuel = await startDuel(playerDeck);
+      const nextDuel = await startDuel(playerDeck, aiDifficulty);
       setDuel(nextDuel);
     } catch {
       setError('Could not start duel.');
@@ -140,7 +148,7 @@ export default function DuelPage() {
     playTone('clash');
 
     try {
-      const result = await playDuelRound(duel.duelId, selectedCard.id);
+      const result = await playDuelRound(duel.duelId, selectedCard.id, selectedStance);
       const roundNumber = duel.round;
 
       setRoundResult({ ...result, displayRound: roundNumber });
@@ -182,6 +190,7 @@ export default function DuelPage() {
         queueStep(() => {
           setRoundResult(null);
           setSelectedCardId(null);
+          setSelectedStance('attack');
           setBattlePhase('idle');
           setTimer(30);
         }, 3700);
@@ -205,6 +214,11 @@ export default function DuelPage() {
     setMatchResult({ complete: true, winner: 'ai', surrendered: true });
     setBattlePhase('result');
     playTone('lose');
+  }
+
+  function handleDifficultyChange(difficulty) {
+    setAiDifficulty(difficulty);
+    localStorage.setItem('card-gambit-ai-difficulty', difficulty);
   }
 
   function clearBattleTimers() {
@@ -260,17 +274,20 @@ export default function DuelPage() {
 
       <div className="relative z-10 flex h-screen flex-col overflow-hidden px-4 py-3">
         <header className="flex h-[10vh] min-h-[4.5rem] shrink-0 items-center justify-between">
-          <motion.button
-            type="button"
-            onClick={handleSurrender}
-            disabled={Boolean(matchResult)}
-            whileHover={!matchResult ? { x: [-2, 2, -2, 2, 0], scale: 1.04 } : undefined}
-            whileTap={!matchResult ? { scale: 0.97 } : undefined}
-            className="inline-flex items-center gap-2 rounded-full border border-rose-400/45 bg-rose-950/45 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-rose-100 shadow-[0_0_26px_rgba(244,63,94,0.24)] backdrop-blur transition hover:border-rose-300 hover:bg-rose-500/18 disabled:cursor-default disabled:opacity-45"
-          >
-            <Flag size={16} />
-            Surrender
-          </motion.button>
+          <div className="flex items-center gap-3">
+            <motion.button
+              type="button"
+              onClick={handleSurrender}
+              disabled={Boolean(matchResult)}
+              whileHover={!matchResult ? { x: [-2, 2, -2, 2, 0], scale: 1.04 } : undefined}
+              whileTap={!matchResult ? { scale: 0.97 } : undefined}
+              className="inline-flex items-center gap-2 rounded-full border border-rose-400/45 bg-rose-950/45 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-rose-100 shadow-[0_0_26px_rgba(244,63,94,0.24)] backdrop-blur transition hover:border-rose-300 hover:bg-rose-500/18 disabled:cursor-default disabled:opacity-45"
+            >
+              <Flag size={16} />
+              Surrender
+            </motion.button>
+            <DifficultySelector difficulty={aiDifficulty} onChange={handleDifficultyChange} disabled={Boolean(duel && !matchResult)} />
+          </div>
 
           <ScoreHud score={score} round={currentRound} history={roundHistory} />
         </header>
@@ -317,6 +334,7 @@ export default function DuelPage() {
               side="player"
               card={roundResult?.playerCard ?? selectedCard}
               rating={roundResult?.playerRating}
+              combat={roundResult?.combat?.player}
               phase={battlePhase}
               winner={roundResult?.roundWinner}
               showDamage={battlePhase === 'result' && roundResult}
@@ -337,6 +355,7 @@ export default function DuelPage() {
               side="ai"
               card={roundResult?.aiCard}
               rating={roundResult?.aiRating}
+              combat={roundResult?.combat?.ai}
               phase={battlePhase}
               winner={roundResult?.roundWinner}
               showDamage={battlePhase === 'result' && roundResult}
@@ -344,7 +363,8 @@ export default function DuelPage() {
           </div>
         </section>
 
-        <section className="flex h-[28vh] min-h-0 shrink-0 items-center justify-center overflow-visible px-2">
+        <section className="flex h-[28vh] min-h-0 shrink-0 flex-col items-center justify-center gap-2 overflow-visible px-2">
+          <StanceSelector selected={selectedStance} disabled={!canSelect} onChange={setSelectedStance} />
           <div className="flex items-end justify-center gap-3 md:gap-5">
             {playerCards.map((card, index) => (
               <HandCard
@@ -444,6 +464,53 @@ function ScoreBubble({ label, value, tone }) {
   );
 }
 
+function DifficultySelector({ difficulty, onChange, disabled }) {
+  return (
+    <div className="hidden items-center gap-1 rounded-full border border-white/10 bg-black/25 p-1 backdrop-blur-xl lg:flex">
+      {difficultyOptions.map((option) => (
+        <button
+          key={option}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(option)}
+          className={`rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+            difficulty === option ? 'border border-[#f5c518]/35 bg-[#f5c518]/12 text-[#f5c518] shadow-ember' : 'text-slate-400 hover:bg-white/8 hover:text-white'
+          } disabled:cursor-not-allowed disabled:opacity-55`}
+          title={disabled ? 'Difficulty changes on the next duel.' : `Set AI to ${option}`}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function StanceSelector({ selected, disabled, onChange }) {
+  return (
+    <div className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/30 p-1.5 backdrop-blur-xl">
+      {stanceOptions.map(({ id, label, icon: Icon, note }) => (
+        <motion.button
+          key={id}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(id)}
+          whileHover={!disabled ? { y: -2, scale: 1.04 } : undefined}
+          whileTap={!disabled ? { scale: 0.96 } : undefined}
+          className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+            selected === id
+              ? 'border-[#f5c518]/45 bg-[#f5c518]/14 text-[#f5c518] shadow-ember'
+              : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-cyan-300/35 hover:text-cyan-100'
+          } disabled:cursor-not-allowed disabled:opacity-45`}
+        >
+          <Icon size={14} />
+          {label}
+          <span className="hidden text-slate-500 sm:inline">{note}</span>
+        </motion.button>
+      ))}
+    </div>
+  );
+}
+
 function OpponentBack({ index, revealed, card, onHover }) {
   return (
     <motion.div
@@ -470,7 +537,7 @@ function OpponentBack({ index, revealed, card, onHover }) {
   );
 }
 
-function CardZone({ label, side, card, rating, phase, winner, showDamage }) {
+function CardZone({ label, side, card, rating, combat, phase, winner, showDamage }) {
   const isWinner = winner === side;
   const isLoser = winner && winner !== side && winner !== 'draw';
   const active = Boolean(card);
@@ -509,7 +576,7 @@ function CardZone({ label, side, card, rating, phase, winner, showDamage }) {
                     animate={{ opacity: 1, y: -10, scale: [0.8, 1.2, 1] }}
                     exit={{ opacity: 0 }}
                   >
-                    {isWinner ? '+Score' : '-Round'}
+                    {combat ? `${isWinner ? '+' : ''}${combat.score}` : isWinner ? '+Score' : '-Round'}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -518,7 +585,7 @@ function CardZone({ label, side, card, rating, phase, winner, showDamage }) {
         </AnimatePresence>
       </div>
       <AnimatePresence>
-        {rating !== undefined && ['impact', 'result'].includes(phase) && (
+        {(rating !== undefined || combat) && ['impact', 'result'].includes(phase) && (
           <motion.p
             className={`rounded-full border px-4 py-1.5 text-xs font-black uppercase tracking-[0.16em] ${
               isWinner ? 'border-[#f5c518]/55 bg-[#f5c518]/15 text-[#f5c518] shadow-ember' : 'border-white/10 bg-white/[0.06] text-slate-200'
@@ -526,7 +593,7 @@ function CardZone({ label, side, card, rating, phase, winner, showDamage }) {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: [0.8, 1.18, 1] }}
           >
-            Rating {rating}
+            {combat ? `Score ${combat.score} / DMG ${combat.damageTaken}` : `Rating ${rating}`}
           </motion.p>
         )}
       </AnimatePresence>
@@ -546,6 +613,7 @@ function ClashCenter({ canClash, selected, phase, timer, result, matchResult, on
     <div className="grid min-w-[10rem] place-items-center gap-3 text-center">
       <motion.button
         type="button"
+        aria-label="Clash"
         onClick={onClash}
         disabled={!canClash}
         initial={{ opacity: 0, rotate: -35, scale: 0.82 }}
@@ -568,6 +636,20 @@ function ClashCenter({ canClash, selected, phase, timer, result, matchResult, on
       <p className={`rounded-full border px-3 py-1 text-xs font-black ${underTen ? 'border-rose-300/40 text-rose-200 animate-pulse' : 'border-white/10 text-cyan-100/80'}`}>
         {showTimer ? `${countdown}s` : '...'}
       </p>
+      {result?.aiStance && (
+        <p className="max-w-44 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-300">
+          You: {result.playerStance} / AI: {result.aiStance}
+        </p>
+      )}
+      {result?.combat?.events?.length > 0 && (
+        <div className="max-h-20 w-52 overflow-hidden rounded-2xl border border-cyan-300/18 bg-cyan-400/8 px-3 py-2 text-left">
+          {result.combat.events.slice(0, 2).map((event, index) => (
+            <p key={`${event.cardName}-${index}`} className="truncate text-[10px] font-bold text-cyan-100/85">
+              {event.text}
+            </p>
+          ))}
+        </div>
+      )}
       <Zap className="battle-lightning text-cyan-200" size={28} />
     </div>
   );
@@ -714,8 +796,12 @@ function EndOverlay({ loading, error, matchResult, reward, rewardLoading, histor
                 <div key={round.round} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.045] px-4 py-2 text-sm">
                   <span className="font-black text-slate-400">Round {round.round}</span>
                   <span className="font-display font-black text-white">{round.playerCard.name}</span>
-                  <span className="text-[#f5c518]">{round.playerRating} vs {round.aiRating}</span>
-                  <span className="font-black uppercase text-cyan-100">{round.roundWinner}</span>
+                  <span className="text-[#f5c518]">
+                    {round.combat?.player?.score ?? round.playerRating} vs {round.combat?.ai?.score ?? round.aiRating}
+                  </span>
+                  <span className="font-black uppercase text-cyan-100">
+                    {round.roundWinner} {round.pointsAwarded > 1 ? `+${round.pointsAwarded}` : ''}
+                  </span>
                 </div>
               ))}
               {matchResult.surrendered && <p className="rounded-xl border border-rose-300/20 bg-rose-500/10 px-4 py-2 text-sm font-black text-rose-100">Surrendered</p>}

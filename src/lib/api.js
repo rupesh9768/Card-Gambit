@@ -79,17 +79,17 @@ export function startGame(mode) {
   });
 }
 
-export function startDuel(playerDeck) {
+export function startDuel(playerDeck, difficulty = 'medium') {
   return request('/api/duel/start', {
     method: 'POST',
-    body: JSON.stringify({ playerDeck }),
+    body: JSON.stringify({ playerDeck, difficulty }),
   });
 }
 
-export function playDuelRound(duelId, selectedCardId) {
+export function playDuelRound(duelId, selectedCardId, stance = 'attack') {
   return request('/api/duel/play', {
     method: 'POST',
-    body: JSON.stringify({ duelId, selectedCardId }),
+    body: JSON.stringify({ duelId, selectedCardId, stance }),
   });
 }
 
