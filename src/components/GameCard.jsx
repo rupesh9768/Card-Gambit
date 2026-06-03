@@ -39,9 +39,21 @@ const rarityStyles = {
   },
 };
 
+const speciesStyles = {
+  Dragons: { glyph: 'DR', tone: 'text-rose-200 border-rose-300/30 bg-rose-500/10' },
+  Gods: { glyph: 'GD', tone: 'text-[#f5c518] border-[#f5c518]/35 bg-[#f5c518]/10' },
+  Entities: { glyph: 'EN', tone: 'text-fuchsia-200 border-fuchsia-300/30 bg-fuchsia-500/10' },
+  Undead: { glyph: 'UD', tone: 'text-emerald-200 border-emerald-300/25 bg-emerald-500/10' },
+  Wizards: { glyph: 'WZ', tone: 'text-sky-200 border-sky-300/30 bg-sky-500/10' },
+  Humans: { glyph: 'HM', tone: 'text-amber-100 border-amber-300/25 bg-amber-500/10' },
+  Monsters: { glyph: 'MN', tone: 'text-red-200 border-red-300/25 bg-red-500/10' },
+  Unknown: { glyph: '??', tone: 'text-fuchsia-100 border-fuchsia-300/35 bg-fuchsia-500/12' },
+};
+
 export default function GameCard({ card, size = 'normal' }) {
   const [flipped, setFlipped] = useState(false);
   const styles = rarityStyles[card.rarity] ?? rarityStyles.Unknown;
+  const species = speciesStyles[card.species] ?? speciesStyles.Unknown;
   const collected = card.collected;
   const sizeStyles = {
     normal: { card: 'h-[31rem]', art: 'h-80', title: 'text-xl', icon: 'h-28 w-28', letter: 'text-5xl' },
@@ -61,7 +73,7 @@ export default function GameCard({ card, size = 'normal' }) {
       type="button"
       onClick={handleClick}
       disabled={!collected}
-      className={`group ${currentSize.card} w-full rounded-xl text-left transition duration-300 [perspective:1200px] ${
+      className={`group rarity-${card.rarity} species-${card.species} ${currentSize.card} w-full rounded-xl text-left transition duration-300 [perspective:1200px] ${
         collected
           ? `cursor-pointer hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] ${styles.glow}`
           : `cursor-not-allowed hover:-translate-y-1 hover:scale-[1.01] ${styles.glow}`
@@ -73,23 +85,27 @@ export default function GameCard({ card, size = 'normal' }) {
           flipped ? '[transform:rotateY(180deg)]' : ''
         }`}
       >
-        <CardFront card={card} styles={styles} collected={collected} sizeStyles={currentSize} />
-        <CardBack card={card} styles={styles} />
+        <CardFront card={card} styles={styles} species={species} collected={collected} sizeStyles={currentSize} />
+        <CardBack card={card} styles={styles} species={species} />
       </div>
     </button>
   );
 }
 
-function CardFront({ card, styles, collected, sizeStyles }) {
+function CardFront({ card, styles, species, collected, sizeStyles }) {
   return (
-    <div className={`absolute inset-0 overflow-hidden rounded-xl border ${styles.border} bg-slate-950/90 p-4 shadow-xl shadow-black/35 backdrop-blur [backface-visibility:hidden]`}>
+    <div className={`collection-card-frame rarity-aura species-aura absolute inset-0 overflow-hidden rounded-xl border ${styles.border} bg-slate-950/90 p-4 shadow-xl shadow-black/35 backdrop-blur [backface-visibility:hidden]`}>
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/35 to-transparent opacity-70" />
-      <div className="mb-3 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
-        <span>{card.species}</span>
+      <div className="mb-3 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+        <span className={`species-sigil inline-flex items-center gap-2 rounded-full px-2.5 py-1 tracking-[0.16em] ${species.tone}`}>
+          <span>{species.glyph}</span>
+          <span>{card.species}</span>
+        </span>
         <span>{collected ? card.ability : 'Hidden'}</span>
       </div>
 
       <div className={`relative grid ${sizeStyles.art} place-items-center overflow-hidden rounded-lg border border-white/10 bg-gradient-to-br ${styles.art}`}>
+        <div className="absolute inset-2 rounded-md border border-white/10" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.15),transparent_34%)]" />
         <div className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition group-hover:translate-x-[320%] group-hover:opacity-100 group-hover:duration-700" />
         {card.imageUrl ? (
@@ -137,16 +153,16 @@ function CardFront({ card, styles, collected, sizeStyles }) {
         </span>
       </div>
 
-      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-        {collected ? 'Click to flip' : 'Collect this card to unlock details'}
+      <p className="mt-4 rounded-full border border-white/10 bg-black/25 px-3 py-1 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+        {collected ? `${card.rarity} ${card.species}` : 'Collect to awaken'}
       </p>
     </div>
   );
 }
 
-function CardBack({ card, styles }) {
+function CardBack({ card, styles, species }) {
   return (
-    <div className={`absolute inset-0 overflow-hidden rounded-xl border ${styles.border} bg-slate-950/95 p-4 shadow-xl shadow-black/35 [backface-visibility:hidden] [transform:rotateY(180deg)]`}>
+    <div className={`collection-card-frame rarity-aura species-aura absolute inset-0 overflow-hidden rounded-xl border ${styles.border} bg-slate-950/95 p-4 shadow-xl shadow-black/35 [backface-visibility:hidden] [transform:rotateY(180deg)]`}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.18),transparent_36%)]" />
       <div className="relative flex h-full flex-col">
         <div>
@@ -159,6 +175,9 @@ function CardBack({ card, styles }) {
 
         <div className="my-6 grid flex-1 place-items-center rounded-lg border border-white/10 bg-white/[0.035]">
           <div className="grid gap-4 text-center">
+            <span className={`species-sigil mx-auto rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${species.tone}`}>
+              {species.glyph} Bloodline
+            </span>
             <span className={`mx-auto rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.2em] ring-1 ${styles.badge}`}>
               {card.rarity}
             </span>

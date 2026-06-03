@@ -89,6 +89,7 @@ export default function Dashboard() {
   return (
     <main className="lobby-screen">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <span className="lobby-sigil" />
         {cardGhosts.map((card, index) => (
           <span
             key={index}

@@ -303,6 +303,7 @@ export default function DuelPage() {
         <section className="relative grid h-[45vh] min-h-0 place-items-center overflow-hidden rounded-[2rem] border border-white/10 bg-black/10">
           <div className="battle-hex-grid absolute inset-0" />
           <div className="battle-energy-beam absolute left-1/2 top-1/2 h-1 w-[30rem] max-w-[52vw] -translate-x-1/2 -translate-y-1/2" />
+          {selectedCard && !matchResult && <div className="battle-tension-line" />}
           <AnimatePresence>
             {battlePhase === 'impact' && (
               <motion.div
@@ -630,7 +631,7 @@ function ClashCenter({ canClash, selected, phase, timer, result, matchResult, on
         </span>
       </motion.button>
       <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">{phase === 'impact' ? 'Impact' : 'Clash'}</p>
-      <p className={`lobby-title-glow font-display text-2xl font-black ${winnerKey === 'ai' ? 'text-rose-300' : winnerKey === 'player' ? 'text-[#f5c518]' : 'text-[#f5c518]'}`}>
+      <p className={`battle-stage-title font-display text-2xl font-black ${winnerKey === 'ai' ? 'text-rose-300' : winnerKey === 'player' ? 'text-[#f5c518]' : 'text-[#f5c518]'}`}>
         {centerText}
       </p>
       <p className={`rounded-full border px-3 py-1 text-xs font-black ${underTen ? 'border-rose-300/40 text-rose-200 animate-pulse' : 'border-white/10 text-cyan-100/80'}`}>
@@ -676,18 +677,26 @@ function HandCard({ card, index, selected, disabled, onClick, onHover }) {
 
 function PremiumCard({ card, selected = false, disabled = false, dimmed = false, onClick, arena = false }) {
   const rarity = getRarityStyle(card.rarity);
+  const species = getSpeciesStyle(card.species);
 
   return (
     <button
       type="button"
       disabled={disabled || !onClick}
       onClick={onClick}
-      className={`premium-card group relative overflow-hidden rounded-2xl border bg-slate-950/88 p-2 text-left shadow-2xl transition ${
+      className={`premium-card rarity-aura species-aura rarity-${card.rarity} species-${card.species} group relative overflow-hidden rounded-2xl border bg-slate-950/88 p-2 text-left shadow-2xl transition ${
         arena ? 'w-[clamp(8rem,10vw,10.8rem)]' : 'w-[clamp(5.4rem,8.2vw,8.9rem)]'
       } ${rarity.border} ${selected ? 'scale-[1.02] border-[#f5c518] shadow-ember' : rarity.shadow} ${dimmed ? 'opacity-70 grayscale' : ''}`}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-white/12 via-transparent to-black/35" />
+      <div className="relative mb-1 flex items-center justify-between gap-1">
+        <span className={`species-sigil rounded-full px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.16em] ${species.tone}`}>
+          {species.glyph}
+        </span>
+        <span className="truncate text-[7px] font-black uppercase tracking-[0.18em] text-slate-500">{card.species}</span>
+      </div>
       <div className={`relative h-[58%] overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-slate-900 to-violet-950`}>
+        <div className="absolute inset-1 z-10 rounded-lg border border-white/10" />
         {card.imageUrl ? (
           <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top transition group-hover:scale-105" />
         ) : (
@@ -712,9 +721,14 @@ function PremiumCard({ card, selected = false, disabled = false, dimmed = false,
 }
 
 function MiniCardFace({ card }) {
+  const species = getSpeciesStyle(card.species);
+
   return (
     <div className="grid h-full w-full grid-rows-[1fr_auto] gap-1 p-2">
-      <div className="overflow-hidden rounded-xl border border-white/10 bg-violet-950">
+      <div className={`species-aura species-${card.species} relative overflow-hidden rounded-xl border border-white/10 bg-violet-950`}>
+        <span className={`species-sigil absolute left-1.5 top-1.5 z-10 rounded-full px-1.5 py-0.5 text-[7px] font-black ${species.tone}`}>
+          {species.glyph}
+        </span>
         {card.imageUrl ? (
           <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top" />
         ) : (
@@ -971,6 +985,22 @@ function playOsc(context, frequency, duration, delay = 0, type = 'sine', gainVal
 }
 
 function getRarityStyle(rarity) {
+  if (rarity === 'Unknown') {
+    return {
+      border: 'border-fuchsia-300/80',
+      shadow: 'shadow-[0_0_34px_rgba(217,70,239,0.48)]',
+      pill: 'border-fuchsia-300/45 bg-fuchsia-500/16 text-fuchsia-100',
+    };
+  }
+
+  if (rarity === 'Legendary') {
+    return {
+      border: 'border-amber-300/85',
+      shadow: 'shadow-[0_0_36px_rgba(245,197,24,0.52)]',
+      pill: 'border-amber-300/50 bg-amber-400/16 text-amber-100',
+    };
+  }
+
   if (rarity === 'Epic') {
     return {
       border: 'border-[#f5c518]/80',
@@ -994,7 +1024,30 @@ function getRarityStyle(rarity) {
   };
 }
 
+function getSpeciesStyle(species) {
+  const styles = {
+    Dragons: { glyph: 'DR', tone: 'border-rose-300/30 bg-rose-500/12 text-rose-100' },
+    Gods: { glyph: 'GD', tone: 'border-[#f5c518]/35 bg-[#f5c518]/12 text-[#f5c518]' },
+    Entities: { glyph: 'EN', tone: 'border-fuchsia-300/30 bg-fuchsia-500/12 text-fuchsia-100' },
+    Undead: { glyph: 'UD', tone: 'border-emerald-300/25 bg-emerald-500/12 text-emerald-100' },
+    Wizards: { glyph: 'WZ', tone: 'border-sky-300/30 bg-sky-500/12 text-sky-100' },
+    Humans: { glyph: 'HM', tone: 'border-amber-300/25 bg-amber-500/12 text-amber-100' },
+    Monsters: { glyph: 'MN', tone: 'border-red-300/25 bg-red-500/12 text-red-100' },
+    Unknown: { glyph: '??', tone: 'border-fuchsia-300/35 bg-fuchsia-500/14 text-fuchsia-100' },
+  };
+
+  return styles[species] ?? styles.Unknown;
+}
+
 function getCardGlow(rarity) {
+  if (rarity === 'Unknown') {
+    return 'drop-shadow(0 0 28px rgba(217,70,239,0.62))';
+  }
+
+  if (rarity === 'Legendary') {
+    return 'drop-shadow(0 0 28px rgba(245,197,24,0.68))';
+  }
+
   if (rarity === 'Epic') {
     return 'drop-shadow(0 0 24px rgba(245,197,24,0.55))';
   }

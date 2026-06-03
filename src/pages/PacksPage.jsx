@@ -154,7 +154,7 @@ export default function PacksPage() {
           </div>
         </header>
 
-        <div className="lobby-glass relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-[2rem] p-5 text-center">
+        <div className="lobby-glass pack-ritual-stage relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-[2rem] p-5 text-center">
           <AnimatePresence>
             {phase !== 'idle' && (
               <motion.div
@@ -195,6 +195,7 @@ export default function PacksPage() {
 
           <div className="relative z-10 grid min-h-0 place-items-center">
             <div className="relative grid h-full min-h-[21rem] w-full max-w-5xl place-items-center">
+              <div className="pack-ritual-ring" />
               <motion.div
                 className="pack-object relative z-10 grid h-52 w-40 place-items-center rounded-[1.8rem] border border-[#f5c518]/45 bg-gradient-to-br from-[#f5c518]/20 via-violet-700/40 to-cyan-950/45 shadow-ember"
                 animate={
@@ -272,7 +273,7 @@ function PackCard({ card, index, total, revealed }) {
 
   return (
     <motion.div
-      className={`pack-reveal-card absolute h-64 w-40 rounded-2xl border bg-slate-950 ${style}`}
+      className={`pack-reveal-card rarity-aura rarity-${card.rarity} absolute h-64 w-40 rounded-2xl border bg-slate-950 ${style}`}
       initial={{ opacity: 0, y: 120, scale: 0 }}
       animate={{
         opacity: 1,
