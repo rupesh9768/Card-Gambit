@@ -14,7 +14,7 @@ const fallbackPlayer = {
   xp: 0,
   xpToNextLevel: 2700,
   coins: 12850,
-  cards: '8/14',
+  cards: '8/23',
 };
 
 const navLinks = [
