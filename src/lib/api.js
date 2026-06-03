@@ -104,9 +104,9 @@ export function applyDuelReward({ userId, result }) {
   });
 }
 
-export function openPack(userId) {
+export function openPack(userId, packType = 'standard') {
   return request('/api/pack/open', {
     method: 'POST',
-    body: JSON.stringify({ userId }),
+    body: JSON.stringify({ userId, packType }),
   });
 }

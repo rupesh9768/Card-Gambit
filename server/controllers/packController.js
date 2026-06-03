@@ -2,8 +2,8 @@ import { openStandardPack } from '../services/gameService.js';
 
 export async function openPack(request, response, next) {
   try {
-    const { userId } = request.body ?? {};
-    const result = await openStandardPack({ user: request.user, userId });
+    const { userId, packType } = request.body ?? {};
+    const result = await openStandardPack({ user: request.user, userId, packType });
     return response.json(result);
   } catch (error) {
     if (error.status) {

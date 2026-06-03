@@ -858,6 +858,20 @@ function RewardPanel({ reward, loading }) {
         <RewardStat label="Coins" value={`+${reward.coinsGained}`} />
         <RewardStat label="Level" value={reward.newLevel} pulse={reward.levelUp} />
       </div>
+      {(reward.streakBonus > 0 || reward.dropPity > 0) && (
+        <div className="mt-3 flex flex-wrap justify-center gap-2 text-[10px] font-black uppercase tracking-[0.14em]">
+          {reward.streakBonus > 0 && (
+            <span className="rounded-full border border-[#f5c518]/30 bg-[#f5c518]/10 px-3 py-1 text-[#f5c518]">
+              Streak Bonus +{reward.streakBonus}
+            </span>
+          )}
+          {reward.dropPity > 0 && (
+            <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-cyan-100">
+              Drop Pity {reward.dropPity}/5
+            </span>
+          )}
+        </div>
+      )}
       {reward.levelUp && (
         <motion.p
           className="mt-3 rounded-xl border border-[#f5c518]/35 bg-[#f5c518]/12 px-4 py-2 text-center text-xs font-black uppercase tracking-[0.18em] text-[#f5c518] shadow-ember"
@@ -867,6 +881,9 @@ function RewardPanel({ reward, loading }) {
           Level Up
         </motion.p>
       )}
+      <BonusRewardList title="Milestone" rewards={reward.levelUnlocks} />
+      <BonusRewardList title="Quest Complete" rewards={reward.questRewards} />
+      <BonusRewardList title="Achievement" rewards={reward.achievementRewards} />
       {reward.droppedCard && (
         <motion.div
           className="mt-4 flex items-center gap-3 rounded-2xl border border-cyan-300/30 bg-cyan-400/10 p-3"
@@ -885,12 +902,36 @@ function RewardPanel({ reward, loading }) {
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">Card Drop</p>
             <p className="font-display text-lg font-black text-white">{reward.droppedCard.name}</p>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              Quantity {reward.droppedCard.quantity ?? 1}
+              {reward.droppedCard.duplicate ? `Duplicate refund +${reward.droppedCard.coinRefund ?? 0} coins` : 'New collection card'}
             </p>
           </div>
         </motion.div>
       )}
     </motion.div>
+  );
+}
+
+function BonusRewardList({ title, rewards = [] }) {
+  if (!rewards.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-3 grid gap-2">
+      {rewards.map((reward) => (
+        <motion.div
+          key={`${title}-${reward.id ?? reward.level}`}
+          className="rounded-xl border border-[#f5c518]/25 bg-[#f5c518]/8 px-4 py-2 text-xs"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <span className="font-black uppercase tracking-[0.16em] text-[#f5c518]">{title}</span>
+          <p className="mt-1 font-bold text-slate-100">
+            {reward.title ?? reward.label} {reward.coins ? `(+${reward.coins} coins)` : reward.coinsReward ? `(+${reward.xpReward} XP / +${reward.coinsReward} coins)` : ''}
+          </p>
+        </motion.div>
+      ))}
+    </div>
   );
 }
 

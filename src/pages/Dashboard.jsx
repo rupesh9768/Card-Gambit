@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, ChevronRight, Coins, Gem, LibraryBig, LogOut, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
+import { Bot, CalendarCheck, ChevronRight, Coins, Gem, LibraryBig, LogOut, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getDashboard } from '../lib/api.js';
 
@@ -207,7 +207,55 @@ function PlayerProfile({ player, collection }) {
         <StatTile icon={Coins} label="Coins" value={Number(player.coins ?? 0).toLocaleString()} tone="text-[#f5c518]" />
         <StatTile icon={LibraryBig} label="Cards" value={cardCount} tone="text-cyan-200" badge={`${cardCount} collected`} />
       </div>
+
+      <ProgressionPanel player={player} />
     </motion.aside>
+  );
+}
+
+function ProgressionPanel({ player }) {
+  const quests = player.dailyQuests ?? [];
+  const nextMilestone = player.nextMilestone;
+
+  return (
+    <div className="relative mt-4 grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/75">
+          <CalendarCheck size={14} />
+          Daily Quests
+        </span>
+        {nextMilestone && (
+          <span className="rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#f5c518]">
+            Lv {nextMilestone.level}: +{nextMilestone.coins} coins
+          </span>
+        )}
+      </div>
+
+      <div className="grid gap-2">
+        {quests.slice(0, 3).map((quest) => {
+          const percent = Math.min(100, Math.round((quest.progress / quest.target) * 100));
+
+          return (
+            <div key={quest.id} className="rounded-xl border border-white/8 bg-white/[0.035] px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-slate-200">{quest.label}</p>
+                <p className="text-[9px] font-black text-[#f5c518]">
+                  +{quest.xpReward} XP / +{quest.coinsReward}
+                </p>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/35">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-[#f5c518]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${percent}%` }}
+                  transition={{ duration: 0.55 }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

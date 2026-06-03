@@ -4,7 +4,22 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Coins, Gem, Home, PackageOpen, Sparkles } from 'lucide-react';
 import { getDashboard, openPack } from '../lib/api.js';
 
-const packCost = 100;
+const packTypes = {
+  standard: {
+    id: 'standard',
+    label: 'Standard Pack',
+    cost: 100,
+    size: 3,
+    description: '3 cards for steady collection growth.',
+  },
+  arcane: {
+    id: 'arcane',
+    label: 'Arcane Pack',
+    cost: 250,
+    size: 5,
+    description: '5 cards with a guaranteed Rare-or-better final slot.',
+  },
+};
 const sparks = Array.from({ length: 30 }, (_, index) => ({
   left: `${(index * 43) % 100}%`,
   bottom: `${(index * 21) % 92}%`,
@@ -34,19 +49,24 @@ const rarityImpact = {
   Unknown: 'pack-impact-unknown',
 };
 
-const placeholderCards = Array.from({ length: 3 }, (_, index) => ({
-  id: `pack-placeholder-${index}`,
-  name: 'Sealed Reward',
-  rarity: 'Common',
-  isPlaceholder: true,
-}));
+function buildPlaceholderCards(size) {
+  return Array.from({ length: size }, (_, index) => ({
+    id: `pack-placeholder-${index}`,
+    name: 'Sealed Reward',
+    rarity: 'Common',
+    isPlaceholder: true,
+  }));
+}
 
 export default function PacksPage() {
   const [coins, setCoins] = useState(null);
+  const [packType, setPackType] = useState('standard');
   const [cards, setCards] = useState([]);
+  const [packResult, setPackResult] = useState(null);
   const [phase, setPhase] = useState('idle');
   const [revealedCount, setRevealedCount] = useState(0);
   const [error, setError] = useState('');
+  const selectedPack = packTypes[packType];
 
   useEffect(() => {
     getDashboard()
@@ -60,14 +80,16 @@ export default function PacksPage() {
     }
 
     setPhase('opening');
-    setCards(placeholderCards);
+    setCards(buildPlaceholderCards(selectedPack.size));
+    setPackResult(null);
     setRevealedCount(0);
     setError('');
 
     try {
-      const result = await openPack();
+      const result = await openPack(undefined, packType);
       setCoins(result.updatedCoins);
       setCards(result.cards);
+      setPackResult(result);
 
       result.cards.forEach((_card, index) => {
         setTimeout(() => setRevealedCount(index + 1), 520 + index * 560);
@@ -82,6 +104,7 @@ export default function PacksPage() {
 
   function resetPack() {
     setCards([]);
+    setPackResult(null);
     setRevealedCount(0);
     setPhase('idle');
     setError('');
@@ -145,9 +168,29 @@ export default function PacksPage() {
           </AnimatePresence>
 
           <div className="relative z-10">
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200/80">Standard Pack</p>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200/80">{selectedPack.label}</p>
             <h1 className="lobby-title-glow mt-1 font-display text-4xl font-black uppercase text-white sm:text-5xl">Open Rewards</h1>
-            <p className="mt-2 text-sm text-slate-400">Costs {packCost} coins. Reveals 3 cards.</p>
+            <p className="mt-2 text-sm text-slate-400">
+              Costs {selectedPack.cost} coins. Reveals {selectedPack.size} cards.
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {Object.values(packTypes).map((pack) => (
+                <button
+                  key={pack.id}
+                  type="button"
+                  disabled={phase === 'opening'}
+                  onClick={() => setPackType(pack.id)}
+                  className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition ${
+                    packType === pack.id
+                      ? 'border-[#f5c518]/45 bg-[#f5c518]/12 text-[#f5c518] shadow-ember'
+                      : 'border-white/10 bg-white/[0.045] text-slate-300 hover:border-cyan-300/35 hover:text-cyan-100'
+                  } disabled:cursor-wait disabled:opacity-60`}
+                >
+                  {pack.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs font-bold text-cyan-100/65">{selectedPack.description}</p>
           </div>
 
           <div className="relative z-10 grid min-h-0 place-items-center">
@@ -163,12 +206,12 @@ export default function PacksPage() {
               >
                 <div className="absolute inset-4 rounded-[1.3rem] border border-white/10 bg-black/25" />
                 <PackageOpen className="relative text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.7)]" size={78} />
-                <p className="absolute bottom-7 font-display text-2xl font-black uppercase text-white">Standard</p>
+                <p className="absolute bottom-7 font-display text-2xl font-black uppercase text-white">{selectedPack.id}</p>
               </motion.div>
 
               <div className="absolute inset-x-0 top-3 z-20 flex justify-center">
                 {cards.map((card, index) => (
-                  <PackCard key={`${card.id}-${index}`} card={card} index={index} revealed={revealedCount > index} />
+                  <PackCard key={`${card.id}-${index}`} card={card} index={index} total={cards.length} revealed={revealedCount > index} />
                 ))}
               </div>
             </div>
@@ -191,6 +234,16 @@ export default function PacksPage() {
                   <Coins size={15} />
                   Updated Coins {coins?.toLocaleString()}
                 </p>
+                {packResult?.duplicateRefund > 0 && (
+                  <p className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-[#f5c518]">
+                    Duplicate Refund +{packResult.duplicateRefund}
+                  </p>
+                )}
+                {packResult?.pity && (
+                  <p className="inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-violet-400/10 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-violet-100">
+                    Epic Pity {packResult.pity.epic}/8
+                  </p>
+                )}
               </div>
             ) : (
               <motion.button
@@ -212,19 +265,19 @@ export default function PacksPage() {
   );
 }
 
-function PackCard({ card, index, revealed }) {
+function PackCard({ card, index, total, revealed }) {
   const style = rarityStyles[card.rarity] ?? rarityStyles.Unknown;
   const impact = rarityImpact[card.rarity] ?? rarityImpact.Unknown;
   const isPlaceholder = card.isPlaceholder;
 
   return (
     <motion.div
-      className={`pack-reveal-card absolute h-72 w-48 rounded-2xl border bg-slate-950 ${style}`}
+      className={`pack-reveal-card absolute h-64 w-40 rounded-2xl border bg-slate-950 ${style}`}
       initial={{ opacity: 0, y: 120, scale: 0 }}
       animate={{
         opacity: 1,
         y: revealed ? -12 : 72,
-        x: (index - 1) * 218,
+        x: (index - (total - 1) / 2) * 174,
         scale: revealed ? [0.82, card.rarity === 'Epic' ? 1.13 : 1.1, 1] : 0.78,
       }}
       transition={{ duration: revealed ? 0.64 : 0.7, ease: [0.22, 1, 0.36, 1] }}
@@ -242,7 +295,7 @@ function PackCard({ card, index, revealed }) {
         </div>
 
         <div className="pack-card-face pack-card-front flex flex-col p-2">
-          <div className="relative h-44 overflow-hidden rounded-xl border border-white/10 bg-violet-950">
+          <div className="relative h-36 overflow-hidden rounded-xl border border-white/10 bg-violet-950">
             <CardArtwork card={card} />
             <div className="pack-shimmer absolute inset-0" />
           </div>
@@ -256,7 +309,7 @@ function PackCard({ card, index, revealed }) {
             <h3 className="mt-1 font-display text-lg font-black leading-tight text-white">{isPlaceholder ? 'Mystery Reward' : card.name}</h3>
             {!isPlaceholder && (
               <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
-                {card.race ?? card.species ?? 'Arcane Card'}
+                {card.duplicate ? `Duplicate +${card.coinRefund ?? 0} coins` : card.race ?? card.species ?? 'Arcane Card'}
               </p>
             )}
           </div>

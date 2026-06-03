@@ -15,6 +15,62 @@ const userCardSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const questSchema = new mongoose.Schema(
+  {
+    id: {
+      type: String,
+      required: true,
+    },
+    label: {
+      type: String,
+      required: true,
+    },
+    type: {
+      type: String,
+      required: true,
+    },
+    target: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    progress: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    xpReward: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    coinsReward: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    claimed: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: false },
+);
+
+const achievementSchema = new mongoose.Schema(
+  {
+    id: {
+      type: String,
+      required: true,
+    },
+    unlockedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false },
+);
+
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -55,6 +111,70 @@ const userSchema = new mongoose.Schema(
     },
     deck: {
       type: [Number],
+      default: [],
+    },
+    winStreak: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    bestWinStreak: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalDuels: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalWins: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalLosses: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalPacksOpened: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    duelDropPity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    packPity: {
+      epic: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      legendary: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      unknown: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+    },
+    dailyQuestDate: {
+      type: String,
+      default: '',
+    },
+    dailyQuests: {
+      type: [questSchema],
+      default: [],
+    },
+    achievements: {
+      type: [achievementSchema],
       default: [],
     },
   },
