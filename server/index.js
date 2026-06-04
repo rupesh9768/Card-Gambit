@@ -5,7 +5,16 @@ import authRoutes from './routes/auth.js';
 import duelRoutes from './routes/duel.js';
 import packRoutes from './routes/pack.js';
 import { authenticate } from './middleware/authMiddleware.js';
-import { collectCard, getCards, getCollectionSummary, getPlayer, getRarities, getSpecies } from './services/gameService.js';
+import {
+  collectCard,
+  getBattleDeck,
+  getCards,
+  getCollectionSummary,
+  getPlayer,
+  getRarities,
+  getSpecies,
+  updateBattleDeck,
+} from './services/gameService.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -62,6 +71,28 @@ app.get('/api/inventory', authenticate, async (request, response, next) => {
       collection: getCollectionSummary(cards),
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/deck', authenticate, async (request, response, next) => {
+  try {
+    const deck = await getBattleDeck(request.user);
+    return response.json(deck);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put('/api/deck', authenticate, async (request, response, next) => {
+  try {
+    const deck = await updateBattleDeck(request.user, request.body?.deck);
+    return response.json(deck);
+  } catch (error) {
+    if (error.status) {
+      return response.status(error.status).json({ message: error.message });
+    }
+
     next(error);
   }
 });

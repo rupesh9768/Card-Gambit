@@ -2,9 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bot, Eye, Flag, Heart, Home, RotateCcw, Shield, Sparkles, Swords, Zap } from 'lucide-react';
-import { applyDuelReward, getDuelResult, getInventory, playDuelRound, startDuel } from '../lib/api.js';
+import { applyDuelReward, getBattleDeck, getDuelResult, playDuelRound, startDuel } from '../lib/api.js';
 
-const preferredDeckNames = ['Flame Tyrant', 'Frost Wyrm', 'Solar Aegis', 'Abyss Walker', 'Bone Reaper'];
 const playablePhases = new Set(['idle', 'selected']);
 const stanceOptions = [
   { id: 'attack', label: 'Attack', icon: Swords, note: '+ATK' },
@@ -109,12 +108,11 @@ export default function DuelPage() {
     setShake(false);
 
     try {
-      const inventory = await getInventory();
-      const ownedCards = inventory.cards.filter((card) => card.collected);
-      const playerDeck = buildPreferredDeck(ownedCards);
+      const savedDeck = await getBattleDeck();
+      const playerDeck = savedDeck.cards ?? [];
 
       if (playerDeck.length < 5) {
-        setError('You need 5 owned cards in your deck to start a duel.');
+        setError('You need 5 saved cards in your battle deck to start a duel.');
         return;
       }
 
@@ -1002,12 +1000,6 @@ function RewardStat({ label, value, pulse = false }) {
       <p className="mt-1 font-display text-xl font-black text-[#f5c518]">{value}</p>
     </motion.div>
   );
-}
-
-function buildPreferredDeck(ownedCards) {
-  const preferred = preferredDeckNames.map((name) => ownedCards.find((card) => card.name === name)).filter(Boolean);
-  const fillers = ownedCards.filter((card) => !preferred.some((preferredCard) => preferredCard.id === card.id));
-  return [...preferred, ...fillers].slice(0, 5);
 }
 
 function playOsc(context, frequency, duration, delay = 0, type = 'sine', gainValue = 0.028) {

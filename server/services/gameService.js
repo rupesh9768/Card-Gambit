@@ -177,6 +177,76 @@ export async function collectCard(cardId, user = null) {
   return toPlainCard(card);
 }
 
+export async function getBattleDeck(user) {
+  if (!user) {
+    return {
+      deck: [],
+      cards: [],
+    };
+  }
+
+  const ownedCards = await getCards(user);
+  const ownedIds = new Set(ownedCards.filter((card) => card.collected).map((card) => Number(card.id)));
+  const savedDeck = (user.deck ?? []).filter((id) => ownedIds.has(Number(id))).slice(0, 5);
+  const fillDeck = ownedCards
+    .filter((card) => card.collected && !savedDeck.includes(card.id))
+    .slice(0, 5 - savedDeck.length)
+    .map((card) => card.id);
+  const deck = [...savedDeck, ...fillDeck];
+
+  if (deck.length === 5 && JSON.stringify(deck) !== JSON.stringify(user.deck ?? [])) {
+    user.deck = deck;
+    await saveMutablePlayer(user);
+  }
+
+  return {
+    deck,
+    cards: deck.map((id) => ownedCards.find((card) => Number(card.id) === Number(id))).filter(Boolean),
+  };
+}
+
+export async function updateBattleDeck(user, deckIds) {
+  if (!user) {
+    const error = new Error('Battle deck requires a player account.');
+    error.status = 401;
+    throw error;
+  }
+
+  if (!Array.isArray(deckIds) || deckIds.length !== 5) {
+    const error = new Error('Battle deck must contain exactly 5 cards.');
+    error.status = 400;
+    throw error;
+  }
+
+  const normalizedIds = deckIds.map((id) => Number(id));
+  const hasInvalidId = normalizedIds.some((id) => !Number.isInteger(id));
+  const hasDuplicates = new Set(normalizedIds).size !== normalizedIds.length;
+
+  if (hasInvalidId || hasDuplicates) {
+    const error = new Error('Battle deck card ids must be unique valid card ids.');
+    error.status = 400;
+    throw error;
+  }
+
+  const ownedCards = await getCards(user);
+  const ownedIds = new Set(ownedCards.filter((card) => card.collected).map((card) => Number(card.id)));
+  const hasLockedCard = normalizedIds.some((id) => !ownedIds.has(id));
+
+  if (hasLockedCard) {
+    const error = new Error('Locked cards cannot be placed in the battle deck.');
+    error.status = 403;
+    throw error;
+  }
+
+  user.deck = normalizedIds;
+  await saveMutablePlayer(user);
+
+  return {
+    deck: user.deck,
+    cards: user.deck.map((id) => ownedCards.find((card) => Number(card.id) === Number(id))).filter(Boolean),
+  };
+}
+
 export function getXpToNextLevel(level) {
   return Math.max(1, level) * 100;
 }

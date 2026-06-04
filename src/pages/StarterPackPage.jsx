@@ -10,7 +10,7 @@ const revealDelay = 520;
 
 export default function StarterPackPage() {
   const navigate = useNavigate();
-  const { refreshUser, user } = useAuth();
+  const { refreshUser } = useAuth();
   const [phase, setPhase] = useState('sealed');
   const [cards, setCards] = useState([]);
   const [revealedCount, setRevealedCount] = useState(0);
@@ -33,7 +33,6 @@ export default function StarterPackPage() {
     try {
       const result = await openStarterPack();
       setCards(result.cards);
-      localStorage.setItem(`card-gambit-deck:${user?.id}`, JSON.stringify(result.deck));
 
       result.cards.forEach((_card, index) => {
         setTimeout(() => setRevealedCount(index + 1), 650 + index * revealDelay);

@@ -3,9 +3,8 @@ import { Grip, Replace, ShieldAlert, Swords } from 'lucide-react';
 import GameCard from '../components/GameCard.jsx';
 import PageShell from '../components/PageShell.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { getInventory } from '../lib/api.js';
+import { getBattleDeck, getInventory, saveBattleDeck } from '../lib/api.js';
 
-const deckStorageKey = 'card-gambit-deck';
 const maxDeckSize = 5;
 
 export default function BattleDeck() {
@@ -16,31 +15,18 @@ export default function BattleDeck() {
   const [draggedSlot, setDraggedSlot] = useState(null);
   const [dropSlot, setDropSlot] = useState(null);
   const [error, setError] = useState('');
+  const [saveState, setSaveState] = useState('saved');
 
   useEffect(() => {
-    getInventory()
-      .then((data) => {
-        const ownedCards = data.cards.filter((card) => card.collected);
+    Promise.all([getInventory(), getBattleDeck()])
+      .then(([inventory, deck]) => {
+        const ownedCards = inventory.cards.filter((card) => card.collected);
         setCards(ownedCards);
-
-        const savedDeckIds = readSavedDeck(user?.id);
-        const ownedIds = ownedCards.map((card) => card.id);
-        const validSavedDeck = savedDeckIds.filter((id) => ownedIds.includes(id)).slice(0, maxDeckSize);
-        const fillCards = ownedCards
-          .filter((card) => !validSavedDeck.includes(card.id))
-          .slice(0, maxDeckSize - validSavedDeck.length)
-          .map((card) => card.id);
-
-        setDeckIds([...validSavedDeck, ...fillCards]);
+        setDeckIds(deck.deck ?? []);
+        setSaveState('saved');
       })
       .catch(() => setError('Could not load battle deck cards.'));
   }, [user?.id]);
-
-  useEffect(() => {
-    if (deckIds.length > 0) {
-      localStorage.setItem(getDeckStorageKey(user?.id), JSON.stringify(deckIds));
-    }
-  }, [deckIds, user?.id]);
 
   const deckCards = useMemo(
     () => deckIds.map((id) => cards.find((card) => card.id === id)).filter(Boolean),
@@ -63,6 +49,7 @@ export default function BattleDeck() {
       const next = [...current];
       const [movedCard] = next.splice(fromIndex, 1);
       next.splice(toIndex, 0, movedCard);
+      persistDeck(next);
       return next;
     });
     setSelectedSlot(toIndex);
@@ -77,12 +64,38 @@ export default function BattleDeck() {
     setError('');
 
     if (deckIds.length < maxDeckSize) {
-      setDeckIds((current) => [...current, card.id]);
+      setDeckIds((current) => {
+        const next = [...current, card.id];
+        persistDeck(next);
+        return next;
+      });
       setSelectedSlot(deckIds.length);
       return;
     }
 
-    setDeckIds((current) => current.map((id, index) => (index === selectedSlot ? card.id : id)));
+    setDeckIds((current) => {
+      const next = current.map((id, index) => (index === selectedSlot ? card.id : id));
+      persistDeck(next);
+      return next;
+    });
+  }
+
+  async function persistDeck(nextDeckIds) {
+    if (nextDeckIds.length !== maxDeckSize) {
+      return;
+    }
+
+    setSaveState('saving');
+
+    try {
+      const savedDeck = await saveBattleDeck(nextDeckIds);
+      setDeckIds(savedDeck.deck);
+      setError('');
+      setSaveState('saved');
+    } catch (requestError) {
+      setError(requestError.message);
+      setSaveState('error');
+    }
   }
 
   function handleDragStart(event, index) {
@@ -115,8 +128,11 @@ export default function BattleDeck() {
         <div>
           <p className="text-sm font-black uppercase tracking-[0.24em] text-[#f5c518]">Battle Loadout</p>
           <h1 className="lobby-title-glow mt-2 font-display text-4xl font-black text-slate-50 sm:text-5xl">Battle Deck</h1>
-          <p className="mt-2 text-sm text-slate-400">Only unlocked cards can enter these five combat slots.</p>
+          <p className="mt-2 text-sm text-slate-400">Only unlocked cards can enter these five saved combat slots.</p>
           {error && <p className="mt-2 text-sm font-semibold text-rose-200">{error}</p>}
+          <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">
+            {saveState === 'saving' ? 'Saving deck...' : saveState === 'error' ? 'Deck save failed' : 'Deck saved to account'}
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -217,16 +233,4 @@ function DeckStat({ icon: Icon, label, value }) {
       </div>
     </div>
   );
-}
-
-function getDeckStorageKey(userId) {
-  return userId ? `${deckStorageKey}:${userId}` : deckStorageKey;
-}
-
-function readSavedDeck(userId) {
-  try {
-    return JSON.parse(localStorage.getItem(getDeckStorageKey(userId)) ?? '[]');
-  } catch {
-    return [];
-  }
 }

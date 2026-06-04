@@ -73,6 +73,17 @@ export function getInventory() {
   return request('/api/inventory');
 }
 
+export function getBattleDeck() {
+  return request('/api/deck');
+}
+
+export function saveBattleDeck(deck) {
+  return request('/api/deck', {
+    method: 'PUT',
+    body: JSON.stringify({ deck }),
+  });
+}
+
 export function startGame(mode) {
   return request(`/api/play/${mode}`, {
     method: 'POST',
