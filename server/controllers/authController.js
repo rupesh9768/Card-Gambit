@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { isDatabaseConnected } from '../db.js';
 import { getJwtSecret } from '../middleware/authMiddleware.js';
 import { User } from '../models/User.js';
 import { getXpToNextLevel } from '../services/gameService.js';
+import { createMockUser, findMockUserByEmail, findMockUserByUsername } from '../services/mockAuthStore.js';
 
 const tokenExpiry = '7d';
 
@@ -41,20 +43,28 @@ export async function register(request, response, next) {
       return response.status(400).json({ message: 'Password must be at least 6 characters.' });
     }
 
-    const existing = await User.findOne({ $or: [{ username }, { email }] });
+    const existing = isDatabaseConnected()
+      ? await User.findOne({ $or: [{ username }, { email }] })
+      : findMockUserByEmail(email) || findMockUserByUsername(username);
 
     if (existing) {
       return response.status(409).json({ message: 'Username or email is already in use.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await User.create({
-      username,
-      email,
-      password: hashedPassword,
-      cards: [],
-      deck: [],
-    });
+    const user = isDatabaseConnected()
+      ? await User.create({
+          username,
+          email,
+          password: hashedPassword,
+          cards: [],
+          deck: [],
+        })
+      : createMockUser({
+          username,
+          email,
+          password: hashedPassword,
+        });
 
     return response.status(201).json({
       message: 'Account created.',
@@ -75,7 +85,7 @@ export async function login(request, response, next) {
       return response.status(400).json({ message: 'Email and password are required.' });
     }
 
-    const user = await User.findOne({ email });
+    const user = isDatabaseConnected() ? await User.findOne({ email }) : findMockUserByEmail(email);
 
     if (!user) {
       return response.status(401).json({ message: 'Invalid email or password.' });
