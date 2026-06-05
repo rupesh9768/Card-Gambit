@@ -18,6 +18,7 @@ import {
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
+const MULTIPLAYER_UNLOCK_LEVEL = 5;
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
@@ -117,12 +118,20 @@ app.post('/api/cards/:id/collect', authenticate, async (request, response, next)
   }
 });
 
-app.post('/api/play/:mode', (request, response) => {
+app.post('/api/play/:mode', authenticate, (request, response) => {
   const modes = ['ranked', 'classic', 'ai'];
   const { mode } = request.params;
 
   if (!modes.includes(mode)) {
     return response.status(400).json({ message: 'Invalid game mode.' });
+  }
+
+  if (['ranked', 'classic'].includes(mode) && Number(request.user?.level ?? 1) < MULTIPLAYER_UNLOCK_LEVEL) {
+    return response.status(403).json({
+      message: `Multiplayer unlocks at Level ${MULTIPLAYER_UNLOCK_LEVEL}.`,
+      requiredLevel: MULTIPLAYER_UNLOCK_LEVEL,
+      currentLevel: Number(request.user?.level ?? 1),
+    });
   }
 
   return response.status(202).json({

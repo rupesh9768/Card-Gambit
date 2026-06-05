@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, CalendarCheck, ChevronRight, Coins, Gem, LibraryBig, LogOut, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
+import { Bot, CalendarCheck, ChevronRight, Coins, Gem, LibraryBig, Lock, LogOut, Shield, Sparkles, Swords, Trophy, UserRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getDashboard } from '../lib/api.js';
 
@@ -23,6 +23,8 @@ const navLinks = [
   { to: '/battle-deck', label: 'Battle Deck' },
   { to: '/packs', label: 'Packs' },
 ];
+
+const multiplayerUnlockLevel = 5;
 
 const battleModes = [
   {
@@ -69,6 +71,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [dashboard, setDashboard] = useState(null);
+  const [battleError, setBattleError] = useState('');
 
   useEffect(() => {
     getDashboard().then(setDashboard).catch(() => setDashboard(null));
@@ -78,6 +81,13 @@ export default function Dashboard() {
   const collection = dashboard?.collection;
 
   function handleBattle(mode) {
+    if (isBattleLocked(mode, livePlayer)) {
+      setBattleError(`Multiplayer unlocks at Level ${multiplayerUnlockLevel}. Reach Level ${multiplayerUnlockLevel} to play Rank and Classic.`);
+      return;
+    }
+
+    setBattleError('');
+
     if (mode === 'ai') {
       navigate('/duel');
       return;
@@ -154,11 +164,15 @@ export default function Dashboard() {
 
         <section className="grid min-h-0 flex-1 grid-cols-1 gap-5 py-5 lg:grid-cols-[0.9fr_1.35fr]">
           <PlayerProfile player={livePlayer} collection={collection} />
-          <ArenaGate onBattle={handleBattle} />
+          <ArenaGate player={livePlayer} battleError={battleError} onBattle={handleBattle} />
         </section>
       </div>
     </main>
   );
+}
+
+function isBattleLocked(mode, player) {
+  return ['ranked', 'classic'].includes(mode) && Number(player?.level ?? 1) < multiplayerUnlockLevel;
 }
 
 function PlayerProfile({ player, collection }) {
@@ -281,7 +295,7 @@ function StatTile({ icon: Icon, label, value, tone, badge }) {
   );
 }
 
-function ArenaGate({ onBattle }) {
+function ArenaGate({ player, battleError, onBattle }) {
   return (
     <motion.section
       className="lobby-glass relative min-h-0 overflow-hidden rounded-3xl p-5"
@@ -300,30 +314,45 @@ function ArenaGate({ onBattle }) {
 
       <div className="relative mt-5 grid gap-3">
         {battleModes.map((mode, index) => (
-          <BattleButton key={mode.label} mode={mode} index={index} onClick={() => onBattle(mode.mode)} />
+          <BattleButton
+            key={mode.label}
+            mode={mode}
+            index={index}
+            locked={isBattleLocked(mode.mode, player)}
+            onClick={() => onBattle(mode.mode)}
+          />
         ))}
       </div>
+
+      {battleError && (
+        <p className="relative mt-4 rounded-2xl border border-[#f5c518]/30 bg-[#f5c518]/10 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#f5c518]">
+          {battleError}
+        </p>
+      )}
     </motion.section>
   );
 }
 
-function BattleButton({ mode, index, onClick }) {
-  const Icon = mode.icon;
+function BattleButton({ mode, index, locked, onClick }) {
+  const Icon = locked ? Lock : mode.icon;
 
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      className={`battle-card-panel group relative min-h-[5.65rem] overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-r ${mode.tone} p-3 text-left ring-1 ring-white/10 ${mode.glow}`}
+      aria-disabled={locked}
+      disabled={locked}
+      className={`battle-card-panel group relative min-h-[5.65rem] overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-r ${mode.tone} p-3 text-left ring-1 ring-white/10 ${mode.glow} ${locked ? 'cursor-not-allowed grayscale-[0.35] saturate-50' : ''}`}
       initial={{ opacity: 0, x: 36 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.45, delay: 0.18 + index * 0.1 }}
-      whileHover={{ y: -3, scale: 1.012 }}
-      whileTap={{ scale: 0.97 }}
+      whileHover={locked ? undefined : { y: -3, scale: 1.012 }}
+      whileTap={locked ? undefined : { scale: 0.97 }}
     >
+      {locked && <span className="absolute inset-0 z-10 bg-black/28" />}
       <span className="absolute left-0 top-0 h-full w-1 bg-white/45 shadow-[0_0_18px_rgba(255,255,255,0.55)]" />
       <span className="absolute -right-10 -top-12 h-28 w-28 rounded-full bg-white/18 blur-2xl transition group-hover:scale-125" />
-      <div className="relative z-10 flex h-full items-center justify-between gap-4">
+      <div className="relative z-20 flex h-full items-center justify-between gap-4">
         <span className="flex items-center gap-4">
           <span className="grid h-12 w-12 place-items-center rounded-2xl border border-white/20 bg-black/30 text-white shadow-2xl transition group-hover:scale-110 group-hover:rotate-3">
             <Icon size={25} />
@@ -332,10 +361,16 @@ function BattleButton({ mode, index, onClick }) {
             <span className="block font-display text-2xl font-black uppercase leading-none text-white drop-shadow-[0_0_16px_rgba(255,255,255,0.3)]">
               {mode.label}
             </span>
-            <span className="mt-1.5 block text-[10px] font-black uppercase tracking-[0.18em] text-white/72">{mode.subtitle}</span>
+            <span className="mt-1.5 block text-[10px] font-black uppercase tracking-[0.18em] text-white/72">
+              {locked ? `Unlocks at Level ${multiplayerUnlockLevel}` : mode.subtitle}
+            </span>
           </span>
         </span>
-        <ChevronRight className="text-white/75 transition group-hover:translate-x-2 group-hover:text-white" size={30} />
+        {locked ? (
+          <span className="rounded-full border border-white/25 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/80">Locked</span>
+        ) : (
+          <ChevronRight className="text-white/75 transition group-hover:translate-x-2 group-hover:text-white" size={30} />
+        )}
       </div>
     </motion.button>
   );
