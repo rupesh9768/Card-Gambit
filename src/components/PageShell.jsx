@@ -45,7 +45,7 @@ export default function PageShell({ children, showBack = false }) {
         ))}
       </div>
 
-      <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
+      <header className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-3 py-3 sm:px-4 lg:px-6">
         <Link to="/" className="group flex items-center gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-full border border-[#f5c518]/40 bg-[#f5c518]/10 text-[#f5c518] shadow-ember transition group-hover:scale-105">
             <Gem size={20} />
@@ -58,7 +58,7 @@ export default function PageShell({ children, showBack = false }) {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-2 rounded-full border border-white/10 bg-black/25 p-1 shadow-2xl shadow-black/30 backdrop-blur-xl md:flex">
+        <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-black/25 p-1 shadow-2xl shadow-black/30 backdrop-blur-xl md:flex">
           {links.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -75,6 +75,28 @@ export default function PageShell({ children, showBack = false }) {
               {label}
             </NavLink>
           ))}
+        </nav>
+
+        {/* Compact nav for small screens: horizontal scroll */}
+        <nav className="md:hidden -mx-3 overflow-x-auto px-3">
+          <div className="flex items-center gap-2">
+            {links.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    isActive
+                      ? 'border border-[#f5c518]/30 bg-[#f5c518]/10 text-[#f5c518]'
+                      : 'text-slate-300 hover:bg-white/6 hover:text-slate-100'
+                  }`
+                }
+              >
+                <Icon size={14} />
+                {label}
+              </NavLink>
+            ))}
+          </div>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -98,7 +120,11 @@ export default function PageShell({ children, showBack = false }) {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">{children}</main>
+      <main className="relative z-10 mx-auto w-full max-w-5xl px-3 pb-8 sm:px-4 lg:px-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="col-span-12 md:col-span-9 lg:col-span-8 mx-auto">{children}</div>
+        </div>
+      </main>
     </div>
   );
 }

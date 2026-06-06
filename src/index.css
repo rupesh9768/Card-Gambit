@@ -32,6 +32,14 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Improved focus styles for keyboard users */
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgba(99, 102, 241, 0.9);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
 .fantasy-shell {
   position: relative;
   min-height: 100vh;

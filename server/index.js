@@ -5,6 +5,8 @@ import authRoutes from './routes/auth.js';
 import duelRoutes from './routes/duel.js';
 import packRoutes from './routes/pack.js';
 import { authenticate } from './middleware/authMiddleware.js';
+import morgan from 'morgan';
+import logger from './logger.js';
 import {
   collectCard,
   getBattleDeck,
@@ -21,6 +23,8 @@ const PORT = Number(process.env.PORT) || 4000;
 const MULTIPLAYER_UNLOCK_LEVEL = 5;
 
 app.use(express.json());
+// HTTP request logging
+app.use(morgan('combined', { stream: logger.stream }));
 app.use('/api/auth', authRoutes);
 app.use('/api/duel', authenticate, duelRoutes);
 app.use('/api/pack', authenticate, packRoutes);
@@ -162,12 +166,12 @@ app.use('/api', (_request, response) => {
 });
 
 app.use((error, _request, response, _next) => {
-  console.error(error);
+  logger.error(String(error));
   response.status(500).json({ message: 'Server error.' });
 });
 
 connectDatabase().finally(() => {
   app.listen(PORT, () => {
-    console.log(`Card Gambit API running on http://127.0.0.1:${PORT}`);
+    logger.info(`Card Gambit API running on http://127.0.0.1:${PORT}`);
   });
 });
