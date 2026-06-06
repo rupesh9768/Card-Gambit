@@ -73,6 +73,7 @@ export default function GameCard({ card, size = 'normal' }) {
       type="button"
       onClick={handleClick}
       disabled={!collected}
+      aria-pressed={flipped}
       className={`group rarity-${card.rarity} species-${card.species} ${currentSize.card} w-full rounded-xl text-left transition duration-300 [perspective:1200px] ${
         collected
           ? `cursor-pointer hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] ${styles.glow}`
@@ -112,6 +113,7 @@ function CardFront({ card, styles, species, collected, sizeStyles }) {
           <img
             src={card.imageUrl}
             alt={card.name}
+            loading="lazy"
             className={`h-full w-full object-cover object-top transition duration-500 group-hover:scale-105 ${
               collected ? '' : 'brightness-75 saturate-75'
             }`}
